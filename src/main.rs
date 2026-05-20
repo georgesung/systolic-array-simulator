@@ -24,7 +24,7 @@ impl ProcessingElement {
     }
 
     /// Clock Tick: Computes combinational logic and updates registers
-    pub fn tick(&mut self, x_in: f32, y_in: f32) {
+    pub fn tick(&mut self, x_in: f32, y_in: f32) -> (f32, f32) {
         // 1. COMBINATIONAL LOGIC
         // Compute the Multiply-Accumulate operation using standard float math
         let mac_result = (x_in * self.weight) + y_in;
@@ -33,11 +33,24 @@ impl ProcessingElement {
         // 2. REGISTER UPDATE (Clock Edge)
         self.reg_x_out = next_x;
         self.reg_y_out = mac_result;
+
+        (self.reg_x_out, self.reg_y_out)
     }
 
-    /// Output Ports: Read the current values sitting on the output flip-flops
-    pub fn read_outputs(&self) -> (f32, f32) {
-        (self.reg_x_out, self.reg_y_out)
+    // --- READ-ONLY GETTERS (Inspectors) ---
+    // In Rust, it is idiomatic to name getters the exact same name as the field
+    // (i.e., use `pe.weight()` instead of `pe.get_weight()`).
+
+    pub fn weight(&self) -> f32 {
+        self.weight
+    }
+
+    pub fn reg_x_out(&self) -> f32 {
+        self.reg_x_out
+    }
+
+    pub fn reg_y_out(&self) -> f32 {
+        self.reg_y_out
     }
 }
 
@@ -51,8 +64,6 @@ fn main() {
 mod tests {
     use super::*;
 
-    // Helper function for floating-point assertions.
-    // Because of tiny rounding errors in float math, we check if they are "close enough".
     fn assert_approx_eq(actual: f32, expected: f32, msg: &str) {
         let tolerance = 1e-4;
         assert!(
@@ -62,16 +73,11 @@ mod tests {
         );
     }
 
-    // A tiny, self-contained Pseudo-Random Number Generator (Xorshift32 algorithm)
-    // This saves you from having to modify your Cargo.toml file for this example.
     struct SimpleRng {
         state: u32,
     }
     impl SimpleRng {
-        fn new(seed: u32) -> Self {
-            Self { state: seed }
-        }
-        // Generates a pseudo-random f32 between -50.0 and 50.0
+        fn new(seed: u32) -> Self { Self { state: seed } }
         fn next_f32(&mut self) -> f32 {
             self.state ^= self.state << 13;
             self.state ^= self.state >> 17;
@@ -86,46 +92,48 @@ mod tests {
         pe.load_weight(3.0);
 
         // --- Cycle 1 ---
-        pe.tick(2.0, 0.0);
-        let (x_out, y_out) = pe.read_outputs();
+        // We capture the output directly from the tick function now!
+        let (x_out, y_out) = pe.tick(2.0, 0.0);
         assert_approx_eq(x_out, 2.0, "Fixed Cycle 1 X");
         assert_approx_eq(y_out, 6.0, "Fixed Cycle 1 Y");
 
         // --- Cycle 2 ---
-        pe.tick(4.0, 10.0);
-        let (x_out, y_out) = pe.read_outputs();
+        let (x_out, y_out) = pe.tick(4.0, 10.0);
         assert_approx_eq(x_out, 4.0, "Fixed Cycle 2 X");
         assert_approx_eq(y_out, 22.0, "Fixed Cycle 2 Y");
+
+        // Testing our new getters out:
+        assert_approx_eq(pe.weight(), 3.0, "Getter weight mismatch");
+        assert_approx_eq(pe.reg_x_out(), 4.0, "Getter X mismatch");
+        assert_approx_eq(pe.reg_y_out(), 22.0, "Getter Y mismatch");
     }
 
     #[test]
     fn test_weight_stationary_pe_random() {
-        let mut rng = SimpleRng::new(42); // Seeded for deterministic randomness
-        let n = 1000; // Number of random test iterations
+        let mut rng = SimpleRng::new(42);
+        let n = 1000;
 
         for i in 0..n {
             let mut pe = ProcessingElement::new();
-
-            // Randomly initialize the weight for this iteration
             let random_weight = rng.next_f32();
             pe.load_weight(random_weight);
 
-            // Run 3 distinct cycles per iteration
             for cycle in 1..=3 {
                 let x_in = rng.next_f32();
                 let y_in = rng.next_f32();
 
-                // Calculate the expected hardware behavior on the spot
                 let expected_x = x_in;
                 let expected_y = (x_in * random_weight) + y_in;
 
-                // Clock the hardware
-                pe.tick(x_in, y_in);
-                let (x_out, y_out) = pe.read_outputs();
+                // Capture outputs inline from tick()
+                let (x_out, y_out) = pe.tick(x_in, y_in);
 
-                // Check correctness
-                assert_approx_eq(x_out, expected_x, &format!("Iter {} Cycle {} X mismatch", i, cycle));
-                assert_approx_eq(y_out, expected_y, &format!("Iter {} Cycle {} Y mismatch", i, cycle));
+                assert_approx_eq(x_out, expected_x, &format!("Iter {} Cycle {} X", i, cycle));
+                assert_approx_eq(y_out, expected_y, &format!("Iter {} Cycle {} Y", i, cycle));
+
+                // Double check using the standalone getters to ensure they match
+                assert_approx_eq(pe.reg_x_out(), expected_x, &format!("Iter {} Cycle {} Getter X", i, cycle));
+                assert_approx_eq(pe.reg_y_out(), expected_y, &format!("Iter {} Cycle {} Getter Y", i, cycle));
             }
         }
     }
