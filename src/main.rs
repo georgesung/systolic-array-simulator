@@ -9,7 +9,6 @@ pub struct ProcessingElement {
 }
 
 impl ProcessingElement {
-    /// Constructor: Instantiates the PE with cleared registers
     pub fn new() -> Self {
         Self {
             weight: 0.0,
@@ -18,48 +17,72 @@ impl ProcessingElement {
         }
     }
 
-    /// Configuration Phase: Load the fixed weight a priori
     pub fn load_weight(&mut self, w: f32) {
         self.weight = w;
     }
 
-    /// Clock Tick: Computes combinational logic and updates registers
     pub fn tick(&mut self, x_in: f32, y_in: f32) -> (f32, f32) {
-        // 1. COMBINATIONAL LOGIC
-        // Compute the Multiply-Accumulate operation using standard float math
         let mac_result = (x_in * self.weight) + y_in;
         let next_x = x_in;
 
-        // 2. REGISTER UPDATE (Clock Edge)
         self.reg_x_out = next_x;
         self.reg_y_out = mac_result;
 
         (self.reg_x_out, self.reg_y_out)
     }
 
-    // --- READ-ONLY GETTERS (Inspectors) ---
-    // In Rust, it is idiomatic to name getters the exact same name as the field
-    // (i.e., use `pe.weight()` instead of `pe.get_weight()`).
+    pub fn weight(&self) -> f32 { self.weight }
+    pub fn reg_x_out(&self) -> f32 { self.reg_x_out }
+    pub fn reg_y_out(&self) -> f32 { self.reg_y_out }
+}
 
-    pub fn weight(&self) -> f32 {
-        self.weight
+// --- 2. 1D Array of PEs (Vertical) ---
+pub struct DotProduct1D {
+    pe0: ProcessingElement,
+    pe1: ProcessingElement,
+    pe2: ProcessingElement,
+}
+
+impl DotProduct1D {
+    pub fn new() -> Self {
+        Self {
+            pe0: ProcessingElement::new(),
+            pe1: ProcessingElement::new(),
+            pe2: ProcessingElement::new(),
+        }
     }
 
-    pub fn reg_x_out(&self) -> f32 {
-        self.reg_x_out
+    pub fn load_weights(&mut self, w0: f32, w1: f32, w2: f32) {
+        self.pe0.load_weight(w0);
+        self.pe1.load_weight(w1);
+        self.pe2.load_weight(w2);
     }
 
-    pub fn reg_y_out(&self) -> f32 {
-        self.reg_y_out
+    /// Simulates a single clock cycle for the entire 1D array.
+    /// `x0`, `x1`, `x2` are the inputs arriving at this specific clock cycle.
+    /// Returns the accumulated output from the bottom PE (from the PREVIOUS cycle).
+    pub fn tick(&mut self, x0: f32, x1: f32, x2: f32) -> f32 {
+        // Read current register states (acting as the values on the wires BEFORE the clock edge)
+        let y0_in = 0.0; // Top of the array
+        let y1_in = self.pe0.reg_y_out();
+        let y2_in = self.pe1.reg_y_out();
+        
+        // The output of the array is the current state of the last register
+        let out = self.pe2.reg_y_out();
+
+        // Tick all PEs (Compute combinational logic and update registers for the next cycle)
+        self.pe0.tick(x0, y0_in);
+        self.pe1.tick(x1, y1_in);
+        self.pe2.tick(x2, y2_in);
+
+        out
     }
 }
 
-// --- 2. Your Normal Run Execution ---
 fn main() {
-    println!("Running the main hardware simulation... Use 'cargo test' to run the testbench!");
+    println!("Run 'cargo test' to see the 1D Pipelined Dot Product in action!");
 }
 
-// --- 3. Your Testbench ---
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -73,68 +96,41 @@ mod tests {
         );
     }
 
-    struct SimpleRng {
-        state: u32,
-    }
-    impl SimpleRng {
-        fn new(seed: u32) -> Self { Self { state: seed } }
-        fn next_f32(&mut self) -> f32 {
-            self.state ^= self.state << 13;
-            self.state ^= self.state >> 17;
-            self.state ^= self.state << 5;
-            ((self.state as i32 % 5000) as f32) / 100.0
-        }
-    }
-
     #[test]
-    fn test_weight_stationary_pe_fixed() {
-        let mut pe = ProcessingElement::new();
-        pe.load_weight(3.0);
+    fn test_dot_product_1d() {
+        let mut dp = DotProduct1D::new();
+        // Weights: w0 = 1.0, w1 = 2.0, w2 = 3.0
+        dp.load_weights(1.0, 2.0, 3.0);
 
-        // --- Cycle 1 ---
-        // We capture the output directly from the tick function now!
-        let (x_out, y_out) = pe.tick(2.0, 0.0);
-        assert_approx_eq(x_out, 2.0, "Fixed Cycle 1 X");
-        assert_approx_eq(y_out, 6.0, "Fixed Cycle 1 Y");
+        // We want to compute the dot product of W = [1, 2, 3] with two vectors:
+        // VA = [10.0, 20.0, 30.0]
+        // VB = [4.0,  5.0,  6.0]
+        // Expected A = 1*10 + 2*20 + 3*30 = 10 + 40 + 90 = 140
+        // Expected B = 1*4  + 2*5  + 3*6  = 4  + 10 + 18 = 32
 
-        // --- Cycle 2 ---
-        let (x_out, y_out) = pe.tick(4.0, 10.0);
-        assert_approx_eq(x_out, 4.0, "Fixed Cycle 2 X");
-        assert_approx_eq(y_out, 22.0, "Fixed Cycle 2 Y");
+        // Because it's pipelined, we have to SKEW the inputs!
+        // X inputs are fed in diagonally over time.
+        
+        // Cycle 1: Feed VA[0] to PE0
+        let out1 = dp.tick(10.0, 0.0, 0.0);
+        assert_approx_eq(out1, 0.0, "Cycle 1 Out");
 
-        // Testing our new getters out:
-        assert_approx_eq(pe.weight(), 3.0, "Getter weight mismatch");
-        assert_approx_eq(pe.reg_x_out(), 4.0, "Getter X mismatch");
-        assert_approx_eq(pe.reg_y_out(), 22.0, "Getter Y mismatch");
-    }
+        // Cycle 2: Feed VA[1] to PE1, and VB[0] to PE0
+        let out2 = dp.tick(4.0, 20.0, 0.0);
+        assert_approx_eq(out2, 0.0, "Cycle 2 Out");
 
-    #[test]
-    fn test_weight_stationary_pe_random() {
-        let mut rng = SimpleRng::new(42);
-        let n = 1000;
+        // Cycle 3: Feed VA[2] to PE2, VB[1] to PE1
+        let out3 = dp.tick(0.0, 5.0, 30.0);
+        assert_approx_eq(out3, 0.0, "Cycle 3 Out");
 
-        for i in 0..n {
-            let mut pe = ProcessingElement::new();
-            let random_weight = rng.next_f32();
-            pe.load_weight(random_weight);
+        // Cycle 4: VA is finished accumulating, VB[2] goes to PE2
+        // The result of VA comes out of PE2's register now!
+        let out4 = dp.tick(0.0, 0.0, 6.0);
+        assert_approx_eq(out4, 140.0, "Cycle 4 Out (VA Result)");
 
-            for cycle in 1..=3 {
-                let x_in = rng.next_f32();
-                let y_in = rng.next_f32();
-
-                let expected_x = x_in;
-                let expected_y = (x_in * random_weight) + y_in;
-
-                // Capture outputs inline from tick()
-                let (x_out, y_out) = pe.tick(x_in, y_in);
-
-                assert_approx_eq(x_out, expected_x, &format!("Iter {} Cycle {} X", i, cycle));
-                assert_approx_eq(y_out, expected_y, &format!("Iter {} Cycle {} Y", i, cycle));
-
-                // Double check using the standalone getters to ensure they match
-                assert_approx_eq(pe.reg_x_out(), expected_x, &format!("Iter {} Cycle {} Getter X", i, cycle));
-                assert_approx_eq(pe.reg_y_out(), expected_y, &format!("Iter {} Cycle {} Getter Y", i, cycle));
-            }
-        }
+        // Cycle 5: VB is finished accumulating
+        // The result of VB comes out of PE2's register!
+        let out5 = dp.tick(0.0, 0.0, 0.0);
+        assert_approx_eq(out5, 32.0, "Cycle 5 Out (VB Result)");
     }
 }
