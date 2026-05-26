@@ -33,49 +33,74 @@ impl ProcessingElement {
     pub fn reg_y_out(&self) -> f32 { self.reg_y_out }
 }
 
-// --- 2. 1D Array of PEs (Parameterizable via Const Generics) ---
-pub struct DotProduct1D<const N: usize> {
-    pes: [ProcessingElement; N],
+// --- 2. 1D Array of PEs (Storage Agnostic) ---
+// 'S' stands for Storage. It can be a fixed Array `[T; N]` or a dynamic `Vec<T>`.
+pub struct DotProduct1D<S> {
+    pes: S,
 }
 
-impl<const N: usize> DotProduct1D<N> {
-    pub fn new() -> Self {
-        Self {
-            // Because ProcessingElement implements Copy, we can initialize the array easily
-            pes: [ProcessingElement::new(); N],
-        }
-    }
+// Implement methods for ANY storage 'S' that can be viewed as a slice of PEs.
+impl<S> DotProduct1D<S>
+where
+    S: AsMut<[ProcessingElement]>,
+{
+    pub fn load_weights(&mut self, weights: &[f32]) {
+        let pes = self.pes.as_mut();
+        // Assert that we provided the correct number of weights
+        assert_eq!(pes.len(), weights.len(), "Weights length must match array length");
 
-    pub fn load_weights(&mut self, weights: [f32; N]) {
-        for i in 0..N {
-            self.pes[i].load_weight(weights[i]);
+        for i in 0..pes.len() {
+            pes[i].load_weight(weights[i]);
         }
     }
 
     /// Simulates a single clock cycle for the entire 1D array.
-    /// Takes an array of N inputs for the current cycle.
-    pub fn tick(&mut self, x_ins: [f32; N]) -> f32 {
-        // Read current register states (before the clock edge)
-        let mut y_ins = [0.0; N];
-        for i in 1..N {
-            // The input 'y' to PE[i] comes from the 'y_out' register of PE[i-1]
-            y_ins[i] = self.pes[i - 1].reg_y_out();
+    /// Takes a slice of inputs for the current cycle.
+    pub fn tick(&mut self, x_ins: &[f32]) -> f32 {
+        let pes = self.pes.as_mut();
+        // Assert that we provided the correct number of inputs
+        assert_eq!(pes.len(), x_ins.len(), "Inputs length must match array length");
+
+        // The input into the top of the PE array
+        let mut prev_y_out = 0.0;
+
+        // By simulating sequentially from top to bottom, but capturing the
+        // register state BEFORE we tick the PE, we perfectly simulate
+        // simultaneous clock edges without needing an intermediate buffer!
+        for i in 0..pes.len() {
+            // Capture the state of PE[i] before it ticks
+            let current_y_out = pes[i].reg_y_out();
+
+            // Tick PE[i]. Its y_in is the y_out of the PE above it (prev_y_out)
+            pes[i].tick(x_ins[i], prev_y_out);
+
+            // The y_out of this PE becomes the y_in for the next PE
+            prev_y_out = current_y_out;
         }
 
-        // The output of the entire array is the current state of the last register
-        let out = if N > 0 { self.pes[N - 1].reg_y_out() } else { 0.0 };
-
-        // Tick all PEs simultaneously
-        for i in 0..N {
-            self.pes[i].tick(x_ins[i], y_ins[i]);
-        }
-
-        out
+        // Return the final output that emerged from the bottom PE
+        prev_y_out
     }
 }
 
+// --- Helper Constructors for common storage types ---
+impl<const N: usize> DotProduct1D<[ProcessingElement; N]> {
+    /// Creates a DotProduct1D backed by a fixed-size stack array (Fast, No-Alloc)
+    pub fn new_static() -> Self {
+        Self { pes: [ProcessingElement::new(); N] }
+    }
+}
+
+impl DotProduct1D<Vec<ProcessingElement>> {
+    /// Creates a DotProduct1D backed by a dynamically sized Vector (WASM/Runtime friendly)
+    pub fn new_dynamic(size: usize) -> Self {
+        Self { pes: vec![ProcessingElement::new(); size] }
+    }
+}
+
+
 fn main() {
-    println!("Run 'cargo test' to see the Parameterized 1D Pipelined Dot Product in action!");
+    println!("Run 'cargo test' to see the Agnostic 1D Pipelined Dot Product in action!");
 }
 
 #[cfg(test)]
@@ -92,51 +117,61 @@ mod tests {
     }
 
     #[test]
-    fn test_dot_product_1d_len3() {
-        // Now parameterized with <3>
-        let mut dp = DotProduct1D::<3>::new();
-        dp.load_weights([1.0, 2.0, 3.0]);
+    fn test_dot_product_static_array() {
+        // Create a fixed size pipeline using a stack array
+        let mut dp = DotProduct1D::<[ProcessingElement; 3]>::new_static();
+        dp.load_weights(&[1.0, 2.0, 3.0]);
 
-        // Cycle 1: Feed VA[0] to PE0
-        let out1 = dp.tick([10.0, 0.0, 0.0]);
+        let out1 = dp.tick(&[10.0, 0.0, 0.0]);
         assert_approx_eq(out1, 0.0, "Cycle 1 Out");
 
-        // Cycle 2: Feed VA[1] to PE1, and VB[0] to PE0
-        let out2 = dp.tick([4.0, 20.0, 0.0]);
+        let out2 = dp.tick(&[4.0, 20.0, 0.0]);
         assert_approx_eq(out2, 0.0, "Cycle 2 Out");
 
-        // Cycle 3: Feed VA[2] to PE2, VB[1] to PE1
-        let out3 = dp.tick([0.0, 5.0, 30.0]);
+        let out3 = dp.tick(&[0.0, 5.0, 30.0]);
         assert_approx_eq(out3, 0.0, "Cycle 3 Out");
 
-        // Cycle 4: VA is finished accumulating, VB[2] goes to PE2
-        // The result of VA comes out of PE2's register now!
-        let out4 = dp.tick([0.0, 0.0, 6.0]);
+        let out4 = dp.tick(&[0.0, 0.0, 6.0]);
         assert_approx_eq(out4, 140.0, "Cycle 4 Out (VA Result)");
 
-        // Cycle 5: VB is finished accumulating
-        let out5 = dp.tick([0.0, 0.0, 0.0]);
+        let out5 = dp.tick(&[0.0, 0.0, 0.0]);
         assert_approx_eq(out5, 32.0, "Cycle 5 Out (VB Result)");
     }
 
     #[test]
-    fn test_dot_product_1d_len5() {
-        // Try a length 5 dot product
-        let mut dp = DotProduct1D::<5>::new();
-        dp.load_weights([1.0, 1.0, 1.0, 1.0, 1.0]);
+    fn test_dot_product_dynamic_vector() {
+        // Create a dynamically sized pipeline of length 5
+        let n = 5;
+        let mut dp = DotProduct1D::new_dynamic(n);
 
-        // Let's compute dot product with A = [1, 2, 3, 4, 5] -> expected sum 15
-        
-        // Feed the inputs diagonally, 1 per cycle
-        let _ = dp.tick([1.0, 0.0, 0.0, 0.0, 0.0]); // Cycle 1
-        let _ = dp.tick([0.0, 2.0, 0.0, 0.0, 0.0]); // Cycle 2
-        let _ = dp.tick([0.0, 0.0, 3.0, 0.0, 0.0]); // Cycle 3
-        let _ = dp.tick([0.0, 0.0, 0.0, 4.0, 0.0]); // Cycle 4
-        let _ = dp.tick([0.0, 0.0, 0.0, 0.0, 5.0]); // Cycle 5 (accumulation finishes in last PE)
-        
-        // Cycle 6: result pops out
-        let out = dp.tick([0.0, 0.0, 0.0, 0.0, 0.0]); 
-        
-        assert_approx_eq(out, 15.0, "Length 5 Dot Product Result");
+        // Weights: [1.0, 2.0, 3.0, 4.0, 5.0]
+        let weights = [1.0, 2.0, 3.0, 4.0, 5.0];
+        dp.load_weights(&weights);
+
+        // Vector A: [10, 20, 30, 40, 50]
+        // Expected A: 1*10 + 2*20 + 3*30 + 4*40 + 5*50 = 10 + 40 + 90 + 160 + 250 = 550
+
+        // Vector B: [1, 1, 1, 1, 1]
+        // Expected B: 1*1 + 2*1 + 3*1 + 4*1 + 5*1 = 1 + 2 + 3 + 4 + 5 = 15
+
+        // Pipelined Execution (Skewed inputs)
+        // Cycle 1: A[0]
+        dp.tick(&[10.0, 0.0, 0.0, 0.0, 0.0]);
+        // Cycle 2: A[1], B[0]
+        dp.tick(&[1.0, 20.0, 0.0, 0.0, 0.0]);
+        // Cycle 3: A[2], B[1]
+        dp.tick(&[0.0, 1.0, 30.0, 0.0, 0.0]);
+        // Cycle 4: A[3], B[2]
+        dp.tick(&[0.0, 0.0, 1.0, 40.0, 0.0]);
+        // Cycle 5: A[4], B[3]
+        dp.tick(&[0.0, 0.0, 0.0, 1.0, 50.0]);
+
+        // Cycle 6: A result emerges, B[4] enters last PE
+        let out_a = dp.tick(&[0.0, 0.0, 0.0, 0.0, 1.0]);
+        assert_approx_eq(out_a, 550.0, "Vector A Result");
+
+        // Cycle 7: B result emerges
+        let out_b = dp.tick(&[0.0, 0.0, 0.0, 0.0, 0.0]);
+        assert_approx_eq(out_b, 15.0, "Vector B Result");
     }
 }
