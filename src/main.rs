@@ -33,74 +33,104 @@ impl ProcessingElement {
     pub fn reg_y_out(&self) -> f32 { self.reg_y_out }
 }
 
-// --- 2. 1D Array of PEs (Storage Agnostic) ---
+// --- 2. 2D Systolic Array (Storage Agnostic) ---
 // 'S' stands for Storage. It can be a fixed Array `[T; N]` or a dynamic `Vec<T>`.
-pub struct DotProduct1D<S> {
+pub struct SystolicArray2D<S> {
+    rows: usize,
+    cols: usize,
     pes: S,
 }
 
-// Implement methods for ANY storage 'S' that can be viewed as a slice of PEs.
-impl<S> DotProduct1D<S>
+impl<S> SystolicArray2D<S>
 where
     S: AsMut<[ProcessingElement]>,
 {
     pub fn load_weights(&mut self, weights: &[f32]) {
         let pes = self.pes.as_mut();
         // Assert that we provided the correct number of weights
-        assert_eq!(pes.len(), weights.len(), "Weights length must match array length");
+        assert_eq!(pes.len(), self.rows * self.cols, "Weights length must match array size");
 
         for i in 0..pes.len() {
             pes[i].load_weight(weights[i]);
         }
     }
 
-    /// Simulates a single clock cycle for the entire 1D array.
-    /// Takes a slice of inputs for the current cycle.
-    pub fn tick(&mut self, x_ins: &[f32]) -> f32 {
+    /// Simulates a single clock cycle for the 2D array.
+    /// `left_ins`: Inputs entering from the left edge (one per row).
+    /// `top_ins`: Inputs entering from the top edge (one per column, usually 0.0 for matmul).
+    /// Returns the outputs emerging from the bottom edge (one per column).
+    pub fn tick(&mut self, left_ins: &[f32], top_ins: &[f32]) -> Vec<f32> {
+        let rows = self.rows;
+        let cols = self.cols;
         let pes = self.pes.as_mut();
-        // Assert that we provided the correct number of inputs
-        assert_eq!(pes.len(), x_ins.len(), "Inputs length must match array length");
 
-        // The input into the top of the PE array
-        let mut prev_y_out = 0.0;
+        // Assert that we provided the correct number of inputs for the edges
+        assert_eq!(left_ins.len(), rows, "left_ins length must match number of rows");
+        assert_eq!(top_ins.len(), cols, "top_ins length must match number of cols");
 
-        // By simulating sequentially from top to bottom, but capturing the
-        // register state BEFORE we tick the PE, we perfectly simulate
-        // simultaneous clock edges without needing an intermediate buffer!
-        for i in 0..pes.len() {
-            // Capture the state of PE[i] before it ticks
-            let current_y_out = pes[i].reg_y_out();
+        let mut bottom_outs = vec![0.0; cols];
 
-            // Tick PE[i]. Its y_in is the y_out of the PE above it (prev_y_out)
-            pes[i].tick(x_ins[i], prev_y_out);
+        // By iterating in reverse (bottom-right to top-left), we can read the `reg_x_out`
+        // and `reg_y_out` of neighbors from the PREVIOUS clock cycle before they are overwritten.
+        // This simulates a simultaneous clock edge for the whole grid
+        for r in (0..rows).rev() {
+            for c in (0..cols).rev() {
+                // Input X comes from PE to the left
+                let x_in = if c == 0 {
+                    left_ins[r]
+                } else {
+                    pes[r * cols + (c - 1)].reg_x_out()
+                };
 
-            // The y_out of this PE becomes the y_in for the next PE
-            prev_y_out = current_y_out;
+                // Input Y comes from PE above
+                let y_in = if r == 0 {
+                    top_ins[c]
+                } else {
+                    pes[(r - 1) * cols + c].reg_y_out()
+                };
+
+                // Simulate one clock cycle for the given PE
+                let idx = r * cols + c;
+                pes[idx].tick(x_in, y_in);
+
+                // Collect the output from the bottom row of PEs
+                if r == rows - 1 {
+                    bottom_outs[c] = pes[idx].reg_y_out();
+                }
+            }
         }
 
-        // Return the final output that emerged from the bottom PE
-        prev_y_out
+        bottom_outs
     }
 }
 
 // --- Helper Constructors for common storage types ---
-impl<const N: usize> DotProduct1D<[ProcessingElement; N]> {
-    /// Creates a DotProduct1D backed by a fixed-size stack array (Fast, No-Alloc)
-    pub fn new_static() -> Self {
-        Self { pes: [ProcessingElement::new(); N] }
+impl<const N: usize> SystolicArray2D<[ProcessingElement; N]> {
+    /// Creates a SystolicArray2D backed by a fixed-size stack array (not on heap, faster to simulate)
+    /// `N` must equal `rows * cols`
+    pub fn new_static(rows: usize, cols: usize) -> Self {
+        assert_eq!(rows * cols, N, "Static array size N must equal rows * cols");
+        Self {
+            rows,
+            cols,
+            pes: [ProcessingElement::new(); N],
+        }
     }
 }
 
-impl DotProduct1D<Vec<ProcessingElement>> {
-    /// Creates a DotProduct1D backed by a dynamically sized Vector (WASM/Runtime friendly)
-    pub fn new_dynamic(size: usize) -> Self {
-        Self { pes: vec![ProcessingElement::new(); size] }
+impl SystolicArray2D<Vec<ProcessingElement>> {
+    /// Creates a SystolicArray2D backed by a dynamically sized Vector (WASM/Runtime friendly)
+    pub fn new_dynamic(rows: usize, cols: usize) -> Self {
+        Self {
+            rows,
+            cols,
+            pes: vec![ProcessingElement::new(); rows * cols],
+        }
     }
 }
-
 
 fn main() {
-    println!("Run 'cargo test' to see the Agnostic 1D Pipelined Dot Product in action!");
+    println!("Run 'cargo test' to see the Systolic Array Matrix Multiplication in action!");
 }
 
 #[cfg(test)]
@@ -117,61 +147,105 @@ mod tests {
     }
 
     #[test]
-    fn test_dot_product_static_array() {
-        // Create a fixed size pipeline using a stack array
-        let mut dp = DotProduct1D::<[ProcessingElement; 3]>::new_static();
-        dp.load_weights(&[1.0, 2.0, 3.0]);
+    fn test_systolic_matmul_2x2_static() {
+        // C = A * B
+        // A = [[1, 2],
+        //      [3, 4]]
+        // B = [[5, 6],
+        //      [7, 8]]
+        // C = [[19, 22],
+        //      [43, 50]]
 
-        let out1 = dp.tick(&[10.0, 0.0, 0.0]);
-        assert_approx_eq(out1, 0.0, "Cycle 1 Out");
+        // N = 4 (2x2 grid)
+        let mut sa = SystolicArray2D::<[ProcessingElement; 4]>::new_static(2, 2);
 
-        let out2 = dp.tick(&[4.0, 20.0, 0.0]);
-        assert_approx_eq(out2, 0.0, "Cycle 2 Out");
+        // Load Matrix B as weights
+        // PE(0,0)=5, PE(0,1)=6, PE(1,0)=7, PE(1,1)=8
+        sa.load_weights(&[5.0, 6.0, 7.0, 8.0]);
 
-        let out3 = dp.tick(&[0.0, 5.0, 30.0]);
-        assert_approx_eq(out3, 0.0, "Cycle 3 Out");
+        // Top inputs are always 0 for weight-stationary matmul
+        let top = [0.0, 0.0];
 
-        let out4 = dp.tick(&[0.0, 0.0, 6.0]);
-        assert_approx_eq(out4, 140.0, "Cycle 4 Out (VA Result)");
+        // Left inputs are columns of A, skewed by row index.
+        // Array row 0 gets A's col 0: [1, 3] -> shifted by 0
+        // Array row 1 gets A's col 1: [2, 4] -> shifted by 1
 
-        let out5 = dp.tick(&[0.0, 0.0, 0.0]);
-        assert_approx_eq(out5, 32.0, "Cycle 5 Out (VB Result)");
+        // Cycle 0: row 0 gets A_00, row 1 gets 0 (shifted)
+        let out0 = sa.tick(&[1.0, 0.0], &top);
+        assert_approx_eq(out0[0], 0.0, "C0 col 0");
+        assert_approx_eq(out0[1], 0.0, "C0 col 1");
+
+        // Cycle 1: row 0 gets A_10, row 1 gets A_01
+        let out1 = sa.tick(&[3.0, 2.0], &top);
+        assert_approx_eq(out1[0], 19.0, "C1 col 0 (C_00)");
+        assert_approx_eq(out1[1], 0.0, "C1 col 1");
+
+        // Cycle 2: row 0 gets 0 (done), row 1 gets A_11
+        let out2 = sa.tick(&[0.0, 4.0], &top);
+        assert_approx_eq(out2[0], 43.0, "C2 col 0 (C_10)");
+        assert_approx_eq(out2[1], 22.0, "C2 col 1 (C_01)");
+
+        // Cycle 3: row 0 gets 0, row 1 gets 0 (done)
+        let out3 = sa.tick(&[0.0, 0.0], &top);
+        assert_approx_eq(out3[0], 0.0, "C3 col 0");
+        assert_approx_eq(out3[1], 50.0, "C3 col 1 (C_11)");
     }
 
     #[test]
-    fn test_dot_product_dynamic_vector() {
-        // Create a dynamically sized pipeline of length 5
-        let n = 5;
-        let mut dp = DotProduct1D::new_dynamic(n);
+    fn test_systolic_matmul_3x3_dynamic() {
+        // C = A * B
+        // A = [[1, 2, 3],
+        //      [4, 5, 6],
+        //      [7, 8, 9]]
+        // B = [[1, 0, 0],
+        //      [0, 1, 0],
+        //      [0, 0, 1]] (Identity)
+        // C = A * I = A
 
-        // Weights: [1.0, 2.0, 3.0, 4.0, 5.0]
-        let weights = [1.0, 2.0, 3.0, 4.0, 5.0];
-        dp.load_weights(&weights);
+        let mut sa = SystolicArray2D::new_dynamic(3, 3);
 
-        // Vector A: [10, 20, 30, 40, 50]
-        // Expected A: 1*10 + 2*20 + 3*30 + 4*40 + 5*50 = 10 + 40 + 90 + 160 + 250 = 550
+        // Load Identity matrix as weights
+        sa.load_weights(&[
+            1.0, 0.0, 0.0,
+            0.0, 1.0, 0.0,
+            0.0, 0.0, 1.0,
+        ]);
 
-        // Vector B: [1, 1, 1, 1, 1]
-        // Expected B: 1*1 + 2*1 + 3*1 + 4*1 + 5*1 = 1 + 2 + 3 + 4 + 5 = 15
+        let top = [0.0, 0.0, 0.0];
 
-        // Pipelined Execution (Skewed inputs)
-        // Cycle 1: A[0]
-        dp.tick(&[10.0, 0.0, 0.0, 0.0, 0.0]);
-        // Cycle 2: A[1], B[0]
-        dp.tick(&[1.0, 20.0, 0.0, 0.0, 0.0]);
-        // Cycle 3: A[2], B[1]
-        dp.tick(&[0.0, 1.0, 30.0, 0.0, 0.0]);
-        // Cycle 4: A[3], B[2]
-        dp.tick(&[0.0, 0.0, 1.0, 40.0, 0.0]);
-        // Cycle 5: A[4], B[3]
-        dp.tick(&[0.0, 0.0, 0.0, 1.0, 50.0]);
+        // Skewed left inputs:
+        // row 0: A_00, A_10, A_20, 0, 0
+        // row 1: 0, A_01, A_11, A_21, 0
+        // row 2: 0, 0, A_02, A_12, A_22
 
-        // Cycle 6: A result emerges, B[4] enters last PE
-        let out_a = dp.tick(&[0.0, 0.0, 0.0, 0.0, 1.0]);
-        assert_approx_eq(out_a, 550.0, "Vector A Result");
+        // Cycle 0
+        let _out0 = sa.tick(&[1.0, 0.0, 0.0], &top);
 
-        // Cycle 7: B result emerges
-        let out_b = dp.tick(&[0.0, 0.0, 0.0, 0.0, 0.0]);
-        assert_approx_eq(out_b, 15.0, "Vector B Result");
+        // Cycle 1
+        let _out1 = sa.tick(&[4.0, 2.0, 0.0], &top);
+
+        // Cycle 2
+        let out2 = sa.tick(&[7.0, 5.0, 3.0], &top);
+        assert_approx_eq(out2[0], 1.0, "C_00 emerges");
+
+        // Cycle 3
+        let out3 = sa.tick(&[0.0, 8.0, 6.0], &top);
+        assert_approx_eq(out3[0], 4.0, "C_10 emerges");
+        assert_approx_eq(out3[1], 2.0, "C_01 emerges");
+
+        // Cycle 4
+        let out4 = sa.tick(&[0.0, 0.0, 9.0], &top);
+        assert_approx_eq(out4[0], 7.0, "C_20 emerges");
+        assert_approx_eq(out4[1], 5.0, "C_11 emerges");
+        assert_approx_eq(out4[2], 3.0, "C_02 emerges");
+
+        // Cycle 5
+        let out5 = sa.tick(&[0.0, 0.0, 0.0], &top);
+        assert_approx_eq(out5[1], 8.0, "C_21 emerges");
+        assert_approx_eq(out5[2], 6.0, "C_12 emerges");
+
+        // Cycle 6
+        let out6 = sa.tick(&[0.0, 0.0, 0.0], &top);
+        assert_approx_eq(out6[2], 9.0, "C_22 emerges");
     }
 }
