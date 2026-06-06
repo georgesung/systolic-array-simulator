@@ -59,7 +59,7 @@ where
     /// `left_ins`: Inputs entering from the left edge (one per row).
     /// `top_ins`: Inputs entering from the top edge (one per column, usually 0.0 for matmul).
     /// Returns the outputs emerging from the bottom edge (one per column).
-    pub fn tick(&mut self, left_ins: &[f32], top_ins: &[f32]) -> Vec<f32> {
+    pub fn tick(&mut self, left_ins: &[f32], top_ins: &[f32], bottom_outs: &mut [f32]) {
         let rows = self.rows;
         let cols = self.cols;
         let pes = self.pes.as_mut();
@@ -67,8 +67,7 @@ where
         // Assert that we provided the correct number of inputs for the edges
         assert_eq!(left_ins.len(), rows, "left_ins length must match number of rows");
         assert_eq!(top_ins.len(), cols, "top_ins length must match number of cols");
-
-        let mut bottom_outs = vec![0.0; cols];
+        assert_eq!(bottom_outs.len(), cols, "bottom_outs length must match number of cols");
 
         // By iterating in reverse (bottom-right to top-left), we can read the `reg_x_out`
         // and `reg_y_out` of neighbors from the PREVIOUS clock cycle before they are overwritten.
@@ -99,8 +98,6 @@ where
                 }
             }
         }
-
-        bottom_outs
     }
 }
 
@@ -170,25 +167,27 @@ mod tests {
         // Array row 0 gets A's col 0: [1, 3] -> shifted by 0
         // Array row 1 gets A's col 1: [2, 4] -> shifted by 1
 
+        let mut out = [0.0; 2];
+
         // Cycle 0: row 0 gets A_00, row 1 gets 0 (shifted)
-        let out0 = sa.tick(&[1.0, 0.0], &top);
-        assert_approx_eq(out0[0], 0.0, "C0 col 0");
-        assert_approx_eq(out0[1], 0.0, "C0 col 1");
+        sa.tick(&[1.0, 0.0], &top, &mut out);
+        assert_approx_eq(out[0], 0.0, "C0 col 0");
+        assert_approx_eq(out[1], 0.0, "C0 col 1");
 
         // Cycle 1: row 0 gets A_10, row 1 gets A_01
-        let out1 = sa.tick(&[3.0, 2.0], &top);
-        assert_approx_eq(out1[0], 19.0, "C1 col 0 (C_00)");
-        assert_approx_eq(out1[1], 0.0, "C1 col 1");
+        sa.tick(&[3.0, 2.0], &top, &mut out);
+        assert_approx_eq(out[0], 19.0, "C1 col 0 (C_00)");
+        assert_approx_eq(out[1], 0.0, "C1 col 1");
 
         // Cycle 2: row 0 gets 0 (done), row 1 gets A_11
-        let out2 = sa.tick(&[0.0, 4.0], &top);
-        assert_approx_eq(out2[0], 43.0, "C2 col 0 (C_10)");
-        assert_approx_eq(out2[1], 22.0, "C2 col 1 (C_01)");
+        sa.tick(&[0.0, 4.0], &top, &mut out);
+        assert_approx_eq(out[0], 43.0, "C2 col 0 (C_10)");
+        assert_approx_eq(out[1], 22.0, "C2 col 1 (C_01)");
 
         // Cycle 3: row 0 gets 0, row 1 gets 0 (done)
-        let out3 = sa.tick(&[0.0, 0.0], &top);
-        assert_approx_eq(out3[0], 0.0, "C3 col 0");
-        assert_approx_eq(out3[1], 50.0, "C3 col 1 (C_11)");
+        sa.tick(&[0.0, 0.0], &top, &mut out);
+        assert_approx_eq(out[0], 0.0, "C3 col 0");
+        assert_approx_eq(out[1], 50.0, "C3 col 1 (C_11)");
     }
 
     #[test]
@@ -218,34 +217,36 @@ mod tests {
         // row 1: 0, A_01, A_11, A_21, 0
         // row 2: 0, 0, A_02, A_12, A_22
 
+        let mut out = [0.0; 3];
+
         // Cycle 0
-        let _out0 = sa.tick(&[1.0, 0.0, 0.0], &top);
+        sa.tick(&[1.0, 0.0, 0.0], &top, &mut out);
 
         // Cycle 1
-        let _out1 = sa.tick(&[4.0, 2.0, 0.0], &top);
+        sa.tick(&[4.0, 2.0, 0.0], &top, &mut out);
 
         // Cycle 2
-        let out2 = sa.tick(&[7.0, 5.0, 3.0], &top);
-        assert_approx_eq(out2[0], 1.0, "C_00 emerges");
+        sa.tick(&[7.0, 5.0, 3.0], &top, &mut out);
+        assert_approx_eq(out[0], 1.0, "C_00 emerges");
 
         // Cycle 3
-        let out3 = sa.tick(&[0.0, 8.0, 6.0], &top);
-        assert_approx_eq(out3[0], 4.0, "C_10 emerges");
-        assert_approx_eq(out3[1], 2.0, "C_01 emerges");
+        sa.tick(&[0.0, 8.0, 6.0], &top, &mut out);
+        assert_approx_eq(out[0], 4.0, "C_10 emerges");
+        assert_approx_eq(out[1], 2.0, "C_01 emerges");
 
         // Cycle 4
-        let out4 = sa.tick(&[0.0, 0.0, 9.0], &top);
-        assert_approx_eq(out4[0], 7.0, "C_20 emerges");
-        assert_approx_eq(out4[1], 5.0, "C_11 emerges");
-        assert_approx_eq(out4[2], 3.0, "C_02 emerges");
+        sa.tick(&[0.0, 0.0, 9.0], &top, &mut out);
+        assert_approx_eq(out[0], 7.0, "C_20 emerges");
+        assert_approx_eq(out[1], 5.0, "C_11 emerges");
+        assert_approx_eq(out[2], 3.0, "C_02 emerges");
 
         // Cycle 5
-        let out5 = sa.tick(&[0.0, 0.0, 0.0], &top);
-        assert_approx_eq(out5[1], 8.0, "C_21 emerges");
-        assert_approx_eq(out5[2], 6.0, "C_12 emerges");
+        sa.tick(&[0.0, 0.0, 0.0], &top, &mut out);
+        assert_approx_eq(out[1], 8.0, "C_21 emerges");
+        assert_approx_eq(out[2], 6.0, "C_12 emerges");
 
         // Cycle 6
-        let out6 = sa.tick(&[0.0, 0.0, 0.0], &top);
-        assert_approx_eq(out6[2], 9.0, "C_22 emerges");
+        sa.tick(&[0.0, 0.0, 0.0], &top, &mut out);
+        assert_approx_eq(out[2], 9.0, "C_22 emerges");
     }
 }
