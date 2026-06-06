@@ -65,8 +65,8 @@ where
         let mut prev_y_out = 0.0;
 
         // By simulating sequentially from top to bottom, but capturing the
-        // register state BEFORE we tick the PE, we perfectly simulate
-        // simultaneous clock edges without needing an intermediate buffer!
+        // y_out register state BEFORE we tick the PE, we simulate
+        // simultaneous clock edges
         for i in 0..pes.len() {
             // Capture the state of PE[i] before it ticks
             let current_y_out = pes[i].reg_y_out();
@@ -118,7 +118,10 @@ mod tests {
 
     #[test]
     fn test_dot_product_static_array() {
-        // Create a fixed size pipeline using a stack array
+        // Create a fixed size pipeline using a static array (lives in the stack, not heap)
+        // Weights = [1, 2, 3]
+        // Vector A = [10, 20, 30]
+        // Vector B = [4, 5, 6]
         let mut dp = DotProduct1D::<[ProcessingElement; 3]>::new_static();
         dp.load_weights(&[1.0, 2.0, 3.0]);
 
@@ -132,10 +135,10 @@ mod tests {
         assert_approx_eq(out3, 0.0, "Cycle 3 Out");
 
         let out4 = dp.tick(&[0.0, 0.0, 6.0]);
-        assert_approx_eq(out4, 140.0, "Cycle 4 Out (VA Result)");
+        assert_approx_eq(out4, 140.0, "Cycle 4 Out (Vector A Result)");
 
         let out5 = dp.tick(&[0.0, 0.0, 0.0]);
-        assert_approx_eq(out5, 32.0, "Cycle 5 Out (VB Result)");
+        assert_approx_eq(out5, 32.0, "Cycle 5 Out (Vector B Result)");
     }
 
     #[test]
