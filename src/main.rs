@@ -58,7 +58,7 @@ where
     /// Simulates a single clock cycle for the 2D array.
     /// `left_ins`: Inputs entering from the left edge (one per row).
     /// `top_ins`: Inputs entering from the top edge (one per column, usually 0.0 for matmul).
-    /// Returns the outputs emerging from the bottom edge (one per column).
+    /// `bottom_outs`: "Outputs" from the bottom edge
     pub fn tick(&mut self, left_ins: &[f32], top_ins: &[f32], bottom_outs: &mut [f32]) {
         let rows = self.rows;
         let cols = self.cols;
