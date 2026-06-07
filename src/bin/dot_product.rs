@@ -238,6 +238,11 @@ fn main() {
             println!(">> Vector {} processing complete! Final result is: {}", finished_v, out);
         }
 
+        if cycle == m + n + 1 {
+            println!(">> All vectors processed and pipeline flushed. Exiting simulator.");
+            break;
+        }
+
         cycle += 1;
     }
 }
