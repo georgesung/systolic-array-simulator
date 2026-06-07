@@ -143,6 +143,10 @@ fn main() {
     io::stdout().flush().unwrap();
     let n = read_usize();
 
+    print!("Enter number of input vectors to process (m): ");
+    io::stdout().flush().unwrap();
+    let m = read_usize();
+
     print!("Auto-generate weights? (y/n): ");
     io::stdout().flush().unwrap();
     let auto_w = read_line().to_lowercase() == "y";
@@ -161,22 +165,27 @@ fn main() {
         }
     }
 
-    print!("Auto-generate input vector? (y/n): ");
-    io::stdout().flush().unwrap();
-    let auto_i = read_line().to_lowercase() == "y";
+    let mut vectors = Vec::with_capacity(m);
+    for v in 0..m {
+        println!("\n--- Vector {} ---", v);
+        print!("Auto-generate input vector {}? (y/n): ", v);
+        io::stdout().flush().unwrap();
+        let auto_i = read_line().to_lowercase() == "y";
 
-    let mut inputs = Vec::with_capacity(n);
-    if auto_i {
-        for i in 0..n {
-            inputs.push(((i % 5) + 1) as f32);
+        let mut inputs = Vec::with_capacity(n);
+        if auto_i {
+            for i in 0..n {
+                inputs.push((((v * n + i) % 5) + 1) as f32);
+            }
+            println!("Generated inputs for vector {}: {:?}", v, inputs);
+        } else {
+            for i in 0..n {
+                print!("Enter vector {} input[{}]: ", v, i);
+                io::stdout().flush().unwrap();
+                inputs.push(read_f32());
+            }
         }
-        println!("Generated inputs: {:?}", inputs);
-    } else {
-        for i in 0..n {
-            print!("Enter input[{}]: ", i);
-            io::stdout().flush().unwrap();
-            inputs.push(read_f32());
-        }
+        vectors.push(inputs);
     }
 
     let mut dp = DotProduct1D::new_dynamic(n);
@@ -192,17 +201,23 @@ fn main() {
         }
 
         let mut current_x_ins = vec![0.0; n];
+        let mut active_vectors = vec![None; n];
         
-        if cycle <= n {
-            current_x_ins[cycle - 1] = inputs[cycle - 1];
+        for i in 0..n {
+            let v_idx = cycle as isize - i as isize - 1;
+            if v_idx >= 0 && (v_idx as usize) < m {
+                let v = v_idx as usize;
+                current_x_ins[i] = vectors[v][i];
+                active_vectors[i] = Some(v);
+            }
         }
 
         println!("--- Cycle {} ---", cycle);
         print!("Incoming X on the left: [");
         for i in 0..n {
             if i > 0 { print!(", "); }
-            if i == cycle - 1 && cycle <= n {
-                print!("--> {}", current_x_ins[i]);
+            if let Some(v) = active_vectors[i] {
+                print!("(V{}) --> {}", v, current_x_ins[i]);
             } else {
                 print!("{}", current_x_ins[i]);
             }
@@ -218,8 +233,9 @@ fn main() {
 
         println!("Output emerging from bottom: {}\n", out);
 
-        if cycle == n + 1 {
-            println!(">> Vector processing complete! Final result is: {}", out);
+        let finished_v = cycle as isize - n as isize - 1;
+        if finished_v >= 0 && (finished_v as usize) < m {
+            println!(">> Vector {} processing complete! Final result is: {}", finished_v, out);
         }
 
         cycle += 1;
