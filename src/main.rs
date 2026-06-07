@@ -249,4 +249,90 @@ mod tests {
         sa.tick(&[0.0, 0.0, 0.0], &top, &mut out);
         assert_approx_eq(out[2], 9.0, "C_22 emerges");
     }
+
+    #[test]
+    fn test_systolic_matmul_random_dynamic() {
+        struct SimpleRng {
+            state: u32,
+        }
+        impl SimpleRng {
+            fn new(seed: u32) -> Self { Self { state: seed } }
+            fn next_f32(&mut self) -> f32 {
+                self.state ^= self.state << 13;
+                self.state ^= self.state >> 17;
+                self.state ^= self.state << 5;
+                ((self.state as i32 % 5000) as f32) / 100.0
+            }
+        }
+
+        let mut rng = SimpleRng::new(42);
+
+        for n in 2..=10 {
+            let mut sa = SystolicArray2D::new_dynamic(n, n);
+            
+            // Generate random matrices A and B
+            let mut a = vec![vec![0.0; n]; n];
+            let mut b = vec![vec![0.0; n]; n];
+            for i in 0..n {
+                for j in 0..n {
+                    a[i][j] = rng.next_f32();
+                    b[i][j] = rng.next_f32();
+                }
+            }
+
+            // Compute expected C = A * B
+            let mut expected_c = vec![vec![0.0; n]; n];
+            for i in 0..n {
+                for j in 0..n {
+                    for k in 0..n {
+                        expected_c[i][j] += a[i][k] * b[k][j];
+                    }
+                }
+            }
+
+            // Load B as weights (row-major)
+            let mut weights = Vec::with_capacity(n * n);
+            for i in 0..n {
+                for j in 0..n {
+                    weights.push(b[i][j]);
+                }
+            }
+            sa.load_weights(&weights);
+
+            let mut out_c = vec![vec![0.0; n]; n];
+            let top = vec![0.0; n];
+            let mut out = vec![0.0; n];
+
+            let total_cycles = 3 * n - 2;
+            for cycle in 0..total_cycles {
+                let mut left_ins = vec![0.0; n];
+                for r in 0..n {
+                    if cycle >= r && cycle - r < n {
+                        left_ins[r] = a[cycle - r][r];
+                    }
+                }
+
+                sa.tick(&left_ins, &top, &mut out);
+
+                for j in 0..n {
+                    let i_isize = cycle as isize - (n as isize - 1) - j as isize;
+                    if i_isize >= 0 && i_isize < n as isize {
+                        out_c[i_isize as usize][j] = out[j];
+                    }
+                }
+            }
+
+            // Verify
+            for i in 0..n {
+                for j in 0..n {
+                    let diff = (out_c[i][j] - expected_c[i][j]).abs();
+                    assert!(
+                        diff < 1e-2,
+                        "N={} C_{}_{}: expected {}, got {} (diff {})",
+                        n, i, j, expected_c[i][j], out_c[i][j], diff
+                    );
+                }
+            }
+        }
+    }
 }
