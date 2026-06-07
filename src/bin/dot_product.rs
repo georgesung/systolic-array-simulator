@@ -99,8 +99,131 @@ impl DotProduct1D<Vec<ProcessingElement>> {
 }
 
 
+impl DotProduct1D<Vec<ProcessingElement>> {
+    pub fn pes_slice(&self) -> &[ProcessingElement] {
+        &self.pes
+    }
+}
+
+use std::io::{self, Write};
+
+fn read_line() -> String {
+    let mut input = String::new();
+    io::stdin().read_line(&mut input).unwrap();
+    input.trim().to_string()
+}
+
+fn read_f32() -> f32 {
+    loop {
+        let s = read_line();
+        if let Ok(val) = s.parse::<f32>() {
+            return val;
+        }
+        print!("Invalid input. Please enter a number: ");
+        io::stdout().flush().unwrap();
+    }
+}
+
+fn read_usize() -> usize {
+    loop {
+        let s = read_line();
+        if let Ok(val) = s.parse::<usize>() {
+            if val > 0 {
+                return val;
+            }
+        }
+        print!("Invalid input. Please enter a positive integer: ");
+        io::stdout().flush().unwrap();
+    }
+}
+
 fn main() {
-    println!("Run 'cargo test' to see the Agnostic 1D Pipelined Dot Product in action!");
+    println!("=== 1D Pipelined Dot Product Simulator ===");
+    print!("Enter vector length (n): ");
+    io::stdout().flush().unwrap();
+    let n = read_usize();
+
+    print!("Auto-generate weights? (y/n): ");
+    io::stdout().flush().unwrap();
+    let auto_w = read_line().to_lowercase() == "y";
+
+    let mut weights = Vec::with_capacity(n);
+    if auto_w {
+        for i in 0..n {
+            weights.push((i + 1) as f32);
+        }
+        println!("Generated weights: {:?}", weights);
+    } else {
+        for i in 0..n {
+            print!("Enter weight[{}]: ", i);
+            io::stdout().flush().unwrap();
+            weights.push(read_f32());
+        }
+    }
+
+    print!("Auto-generate input vector? (y/n): ");
+    io::stdout().flush().unwrap();
+    let auto_i = read_line().to_lowercase() == "y";
+
+    let mut inputs = Vec::with_capacity(n);
+    if auto_i {
+        for i in 0..n {
+            inputs.push(((i % 5) + 1) as f32);
+        }
+        println!("Generated inputs: {:?}", inputs);
+    } else {
+        for i in 0..n {
+            print!("Enter input[{}]: ", i);
+            io::stdout().flush().unwrap();
+            inputs.push(read_f32());
+        }
+    }
+
+    let mut dp = DotProduct1D::new_dynamic(n);
+    dp.load_weights(&weights);
+
+    println!("\nSetup complete! Press Enter to step through cycles (or type 'q' to quit).");
+
+    let mut cycle = 1;
+    loop {
+        let input = read_line();
+        if input.to_lowercase() == "q" {
+            break;
+        }
+
+        let mut current_x_ins = vec![0.0; n];
+        
+        if cycle <= n {
+            current_x_ins[cycle - 1] = inputs[cycle - 1];
+        }
+
+        println!("--- Cycle {} ---", cycle);
+        print!("Incoming X on the left: [");
+        for i in 0..n {
+            if i > 0 { print!(", "); }
+            if i == cycle - 1 && cycle <= n {
+                print!("--> {}", current_x_ins[i]);
+            } else {
+                print!("{}", current_x_ins[i]);
+            }
+        }
+        println!("]");
+
+        let out = dp.tick(&current_x_ins);
+
+        for (i, pe) in dp.pes_slice().iter().enumerate() {
+            println!("  PE[{}] | W: {:>4} | reg_x_out: {:>4} | reg_y_out: {:>4}",
+                     i, pe.weight(), pe.reg_x_out(), pe.reg_y_out());
+        }
+
+        println!("Output emerging from bottom: {}\n", out);
+
+        if cycle == n + 1 {
+            println!(">> Vector processing complete! Final result is: {}", out);
+        }
+
+        cycle += 1;
+    }
 }
 
 #[cfg(test)]
