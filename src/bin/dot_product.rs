@@ -137,6 +137,34 @@ fn read_usize() -> usize {
     }
 }
 
+fn read_u32() -> u32 {
+    loop {
+        let s = read_line();
+        if let Ok(val) = s.parse::<u32>() {
+            return val;
+        }
+        print!("Invalid input. Please enter a non-negative integer: ");
+        io::stdout().flush().unwrap();
+    }
+}
+
+struct SimpleRng {
+    state: u32,
+}
+
+impl SimpleRng {
+    fn new(seed: u32) -> Self {
+        Self { state: seed }
+    }
+
+    fn next_val(&mut self) -> f32 {
+        // Simple Linear Congruential Generator
+        self.state = self.state.wrapping_mul(1664525).wrapping_add(1013904223);
+        // Return a pseudo-random value between -5.0 and 5.0
+        ((self.state >> 16) % 11) as f32 - 5.0
+    }
+}
+
 fn main() {
     println!("=== 1D Pipelined Dot Product Simulator ===");
     print!("Enter vector length (n): ");
@@ -147,14 +175,19 @@ fn main() {
     io::stdout().flush().unwrap();
     let m = read_usize();
 
+    print!("Enter RNG seed (e.g., 42): ");
+    io::stdout().flush().unwrap();
+    let seed = read_u32();
+    let mut rng = SimpleRng::new(seed);
+
     print!("Auto-generate weights? (y/n): ");
     io::stdout().flush().unwrap();
     let auto_w = read_line().to_lowercase() == "y";
 
     let mut weights = Vec::with_capacity(n);
     if auto_w {
-        for i in 0..n {
-            weights.push((i + 1) as f32);
+        for _ in 0..n {
+            weights.push(rng.next_val());
         }
         println!("Generated weights: {:?}", weights);
     } else {
@@ -174,8 +207,8 @@ fn main() {
 
         let mut inputs = Vec::with_capacity(n);
         if auto_i {
-            for i in 0..n {
-                inputs.push((((v * n + i) % 5) + 1) as f32);
+            for _ in 0..n {
+                inputs.push(rng.next_val());
             }
             println!("Generated inputs for vector {}: {:?}", v, inputs);
         } else {
@@ -202,7 +235,7 @@ fn main() {
 
         let mut current_x_ins = vec![0.0; n];
         let mut active_vectors = vec![None; n];
-        
+
         for i in 0..n {
             let v_idx = cycle as isize - i as isize - 1;
             if v_idx >= 0 && (v_idx as usize) < m {
