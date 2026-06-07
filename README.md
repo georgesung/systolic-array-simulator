@@ -1,4 +1,4 @@
-# Hardware Playground (Pipeline Add)
+# Rust Hardware Playground
 
 This project contains a collection of educational, standalone Rust scripts demonstrating hardware concepts like processing elements, pipelined adders, dot products, and systolic arrays.
 
