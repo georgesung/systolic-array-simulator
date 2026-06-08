@@ -1,4 +1,5 @@
 // --- 1. Your Hardware Model ---
+#[derive(Debug, Clone, Copy, Default)]
 pub struct ProcessingElement {
     // Internal configuration register (Loaded a priori)
     weight: f32,
@@ -54,10 +55,7 @@ impl ProcessingElement {
     }
 }
 
-// --- 2. Your Normal Run Execution ---
-fn main() {
-    println!("Running the main hardware simulation... Use 'cargo test' to run the testbench!");
-}
+
 
 // --- 3. Your Testbench ---
 #[cfg(test)]
