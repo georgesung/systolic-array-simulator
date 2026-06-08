@@ -91,6 +91,10 @@ impl SystolicArray2D<Vec<ProcessingElement>> {
             pes: vec![ProcessingElement::new(); rows * cols],
         }
     }
+
+    pub fn pes_slice(&self) -> &[ProcessingElement] {
+        &self.pes
+    }
 }
 
 #[cfg(test)]
