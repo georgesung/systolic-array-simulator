@@ -66,7 +66,7 @@ export function PipelineVisualizer({ n, m, cycle, peStates, activeVectors, vecto
               <div className="flex w-48 justify-end items-center pr-4 gap-1 overflow-visible">
                 {pendingVectors.slice(0, 5).reverse().map((vIdx, qIdx) => (
                    <div key={`q-${vIdx}`} className={`w-8 h-8 rounded shadow-sm flex items-center justify-center text-[10px] font-bold ${getVectorColor(vIdx)} transition-all duration-500 ease-in-out transform -translate-x-2`}>
-                     {vectors[vIdx][i]}
+                     {vectors[vIdx]?.[i] ?? 0}
                    </div>
                 ))}
                 {pendingVectors.length > 5 && <span className="text-xs text-zinc-400 ml-1 font-mono">...</span>}
@@ -87,7 +87,7 @@ export function PipelineVisualizer({ n, m, cycle, peStates, activeVectors, vecto
                   <div className="flex flex-col items-center">
                     <span className="text-[9px] uppercase tracking-wider text-zinc-400 font-bold mb-1">X In/Out</span>
                     <div className={`w-12 h-12 rounded-lg flex items-center justify-center text-sm font-bold shadow-inner ${getVectorColor(activeV)} transition-colors duration-300`}>
-                      {activeV !== null ? vectors[activeV][i] : '-'}
+                      {activeV !== null ? (vectors[activeV]?.[i] ?? 0) : '-'}
                     </div>
                   </div>
                   <div className="flex flex-col items-center">
