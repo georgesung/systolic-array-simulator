@@ -15,7 +15,7 @@ The system is divided into two main layers:
 To maintain a clean separation between the Rust hardware logic and the Next.js frontend, the following structure is recommended (but use your judgement if you disagree):
 
 ```text
-pipeline_add/
+rust-hw-playground/
 ├── Cargo.toml                 # Existing Rust config (add cdylib target)
 ├── src/                       # Existing Rust core & CLIs
 │   ├── lib.rs                 # Exposes your modules
@@ -26,9 +26,9 @@ pipeline_add/
 │       └── cli_dot_product.rs
 │
 ├── pkg/                       # GENERATED: Output from `wasm-pack build`
-│   ├── pipeline_add_bg.wasm   # The WebAssembly binary
-│   ├── pipeline_add.js        # JavaScript glue code
-│   └── pipeline_add.d.ts      # TypeScript definitions
+│   ├── rust_hw_playground_bg.wasm   # The WebAssembly binary
+│   ├── rust_hw_playground.js        # JavaScript glue code
+│   └── rust_hw_playground.d.ts      # TypeScript definitions
 │
 └── web/                       # NEW: Next.js Application
     ├── package.json           # Node dependencies

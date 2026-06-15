@@ -1,4 +1,4 @@
-site_name: Pipeline Dot Product Simulator
+site_name: Rust Hardware Playground
 theme:
   name: material
   palette:
@@ -10,6 +10,15 @@ theme:
     - navigation.top
     - search.suggest
     - search.highlight
+
+nav:
+  - Overview: index.md
+  - Theory of Operation:
+    - Processing Element (PE): theory/processing_element.md
+    - Pipelined Data Flow: theory/pipelined_flow.md
+  - Architecture:
+    - Rust / WASM Core: architecture/rust_wasm_core.md
+    - Next.js Frontend: architecture/nextjs_frontend.md
 
 markdown_extensions:
   - pymdownx.highlight:

@@ -1,6 +1,6 @@
-# Pipeline Dot Product Simulator
+# Rust Hardware Playground
 
-Welcome to the documentation for the Pipeline Dot Product Simulator! 
+Welcome to the documentation for the Rust Hardware Playground! 
 
 This project consists of two main parts:
 1. **Rust / WASM Core:** The hardware simulation logic written in Rust.
