@@ -13,6 +13,7 @@ export function usePipeline(n: number, m: number, weights: number[], vectors: nu
   const [cycle, setCycle] = useState(0);
   const [isLoaded, setIsLoaded] = useState(false);
   const [history, setHistory] = useState<{cycle: number, states: PEState[], output: number}[]>([]);
+  const [activeVectors, setActiveVectors] = useState<(number | null)[]>([]);
 
   // Initialize WASM and Sim
   useEffect(() => {
@@ -47,6 +48,7 @@ export function usePipeline(n: number, m: number, weights: number[], vectors: nu
       });
     }
     setPeStates(initialPeStates);
+    setActiveVectors(Array(n).fill(null));
   }, [n, weights, isLoaded]);
 
   // Reset when n or weights change
@@ -84,6 +86,7 @@ export function usePipeline(n: number, m: number, weights: number[], vectors: nu
 
     setPeStates(newPeStates);
     setCycle(nextCycle);
+    setActiveVectors(activeVectorIndices);
     setHistory(prev => [...prev, { cycle: nextCycle, states: newPeStates, output }]);
 
     return { output, activeVectorIndices };
@@ -98,6 +101,7 @@ export function usePipeline(n: number, m: number, weights: number[], vectors: nu
     reset, 
     isLoaded, 
     isComplete, 
-    history 
+    history,
+    activeVectors
   };
 }
