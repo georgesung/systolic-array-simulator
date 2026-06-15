@@ -252,7 +252,7 @@ export function Simulator() {
         <CardContent>
           <div className="space-y-1 max-h-60 overflow-y-auto font-mono text-sm pr-2 scrollbar-thin scrollbar-thumb-zinc-700">
             {[...history].reverse().map((h, i) => {
-              const finishedV = h.cycle - n;
+              const finishedV = h.cycle - n - 1;
               const vectorCompleted = finishedV >= 0 && finishedV < m;
               
               return (
