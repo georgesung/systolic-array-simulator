@@ -28,7 +28,7 @@ The core hardware logic is written in **Rust** and designed to be cycle-accurate
 - **`src/`**: The core library containing the PE, Dot Product, and Systolic Array models.
 - **`src/wasm_bindings.rs`**: The bridge that allows the Rust core to run in the browser via WebAssembly.
 - **`docs/`**: The source for our MkDocs documentation site.
-- **`web/`**: (Coming Soon) A modern Next.js visualization dashboard.
+- **`web/`**: A modern Next.js visualization dashboard that runs the WASM compiled Rust core.
 
 ## 🧪 Testing & Verification
 
@@ -42,9 +42,17 @@ cargo test
 cargo test test_pipeline_add_educational -- --nocapture
 ```
 
-## 🌐 WebAssembly & Visualization
+## 🌐 Web Visualization Dashboard
 
-This project is built to be a **Web-Native Hardware Simulator**. By compiling the Rust core with `wasm-pack`, we enable a rich, interactive frontend that visualizes data propagating through the processing elements in real-time.
+This project includes a **Web-Native Hardware Simulator**. By compiling the Rust core with `wasm-pack`, we enable a rich, interactive frontend built with Next.js and Shadcn UI that visualizes data propagating through the processing elements in real-time.
+
+**Run the Next.js Web App locally:**
+```bash
+cd web
+npm install
+npm run dev -- --webpack
+```
+Then open [http://localhost:3000](http://localhost:3000) in your browser.
 
 ---
 *Built with ❤️ for hardware enthusiasts and students.*
