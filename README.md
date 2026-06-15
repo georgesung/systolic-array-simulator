@@ -1,57 +1,50 @@
 # Rust Hardware Playground
 
-This project contains a collection of educational hardware simulation models written in Rust. It explores concepts like processing elements, pipelined adders, 1D dot products, and 2D systolic arrays.
+A collection of educational hardware simulation models exploring pipelined computation, processing elements, and systolic arrays.
 
-Recently, the codebase was reorganized into a **Monorepo structure**. The core hardware logic is now cleanly separated into a reusable Rust library, making it easy to share code between CLI tools and future WebAssembly (WASM) frontends.
+📖 **Read the full theory and architectural documentation here:**  
+[https://georgesung.github.io/rust-hw-sandbox-2026/](https://georgesung.github.io/rust-hw-sandbox-2026/)
 
-## File Structure
+---
 
-The project is structured as a library crate with associated CLI binaries. It is also configured with `wasm-bindgen` to eventually support a React/Next.js visualizer frontend.
+## 🚀 Quick Start (CLI)
 
-```text
-rust-hw-playground/
-├── Cargo.toml                  # Configured as a workspace with WASM support
-└── src/
-    ├── lib.rs                  # Entry point for WASM bindings & library exports
-    ├── processing_element.rs   # Core PE hardware model
-    ├── dot_product.rs          # 1D Pipelined Dot Product model & logic
-    ├── systolic_array.rs       # 2D Systolic Array Matrix Multiplication model
-    ├── pipeline_add.rs         # Basic pipelined adder hardware model
-    └── bin/
-        ├── cli_dot_product.rs    # Interactive CLI simulator for the Dot Product
-        └── cli_systolic_array.rs # CLI entry point for the Systolic Array
-```
-
-## How to Run the Simulators
-
-The interactive simulators have been moved to the `src/bin/` directory and use the core library.
+This project contains interactive CLI simulators that run directly in your terminal.
 
 **Run the 1D Pipelined Dot Product Simulator:**
 ```bash
 cargo run --bin cli_dot_product
 ```
 
-**Run the Systolic Array CLI:**
+**Run the 2D Systolic Array Simulator:**
 ```bash
 cargo run --bin cli_systolic_array
 ```
 
-## How to Run Tests
+## 🛠️ Project Structure
 
-All the core hardware logic is heavily tested to ensure cycle-accurate behavior. You can run all the embedded tests across the library:
+The core hardware logic is written in **Rust** and designed to be cycle-accurate.
+
+- **`src/`**: The core library containing the PE, Dot Product, and Systolic Array models.
+- **`src/wasm_bindings.rs`**: The bridge that allows the Rust core to run in the browser via WebAssembly.
+- **`docs/`**: The source for our MkDocs documentation site.
+- **`web/`**: (Coming Soon) A modern Next.js visualization dashboard.
+
+## 🧪 Testing & Verification
+
+Every component is heavily tested to ensure correct hardware behavior:
 
 ```bash
+# Run all tests
 cargo test
-```
 
-To see the output of specific educational simulations (like the pipelined adder), you can run tests with standard output enabled:
-
-```bash
+# Run a specific educational test with verbose output
 cargo test test_pipeline_add_educational -- --nocapture
 ```
 
-## Future Plans (WebAssembly)
+## 🌐 WebAssembly & Visualization
 
-This crate is configured as a `cdylib` and imports `wasm-bindgen`. The core simulator states (e.g., `DotProductSim`) are exported in `src/lib.rs`.
+This project is built to be a **Web-Native Hardware Simulator**. By compiling the Rust core with `wasm-pack`, we enable a rich, interactive frontend that visualizes data propagating through the processing elements in real-time.
 
-In the future, a Next.js frontend can be placed alongside this Rust code. By compiling this project with `wasm-pack build --target web`, the frontend will be able to instantiate the hardware models and render their cycle-by-cycle states in the browser.
+---
+*Built with ❤️ for hardware enthusiasts and students.*
