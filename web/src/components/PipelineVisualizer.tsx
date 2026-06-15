@@ -33,7 +33,7 @@ export function PipelineVisualizer({ n, m, cycle, peStates, activeVectors, vecto
       <div className="flex flex-col relative">
         
         {/* Top Input Y */}
-        <div className="flex flex-col items-center mb-2 z-10 w-48 relative ml-48">
+        <div className="flex flex-col items-center mb-2 z-10 w-48 relative ml-64">
           <span className="text-xs font-bold text-zinc-500 mb-1 tracking-widest uppercase">Y In (0)</span>
           <ArrowDown className="text-zinc-300 dark:text-zinc-700 w-5 h-5 animate-pulse" />
         </div>
@@ -42,36 +42,45 @@ export function PipelineVisualizer({ n, m, cycle, peStates, activeVectors, vecto
           const pe = peStates[i];
           const activeV = activeVectors[i];
           
-          // Calculate what's in the queue for this PE
-          const queue = [];
-          for (let q = 0; q < Math.max(0, m - Math.max(0, cycle - i)); q++) {
-             // The next vector to enter PE[i] is cycle - i (if it's >= 0)
-             // Let's refine the queue calculation
-             // Vector v enters PE i at cycle = i + v + 1.
-             // So if cycle < i + v + 1, it's still in the queue.
-             // We want to show the pending items for PE[i].
-          }
-          // Better queue logic:
-          const pendingVectors = [];
-          for (let v = 0; v < m; v++) {
-            const entryCycle = i + v + 1;
-            if (entryCycle > cycle) {
-               pendingVectors.push(v);
-            }
-          }
+          // Render a fixed number of slots representing the incoming data stream
+          const maxQueueSlots = 6;
+          // Max stream length is n + m - 1
+          const maxStreamLength = n + m - 1;
+          const slots = Array.from({ length: maxQueueSlots })
+            .map((_, j) => j)
+            .filter(j => cycle + j <= maxStreamLength)
+            .reverse();
 
           return (
             <div key={i} className="flex relative items-center mb-2">
               {/* Left Input Queue */}
-              <div className="flex w-48 justify-end items-center pr-4 gap-1 overflow-visible">
-                {pendingVectors.slice(0, 5).reverse().map((vIdx, qIdx) => (
-                   <div key={`q-${vIdx}`} className={`w-8 h-8 rounded shadow-sm flex items-center justify-center text-[10px] font-bold ${getVectorColor(vIdx)} transition-all duration-500 ease-in-out transform -translate-x-2`}>
-                     {vectors[vIdx]?.[i] ?? 0}
-                   </div>
-                ))}
-                {pendingVectors.length > 5 && <span className="text-xs text-zinc-400 ml-1 font-mono">...</span>}
-                {pendingVectors.length > 0 && <ArrowRight className="text-zinc-300 dark:text-zinc-700 w-4 h-4 ml-1" />}
-                {pendingVectors.length === 0 && cycle <= i && <span className="text-[10px] text-zinc-400 italic">waiting...</span>}
+              <div className="flex w-64 justify-end items-center pr-4 gap-2 overflow-visible">
+                {slots.map(j => {
+                   const k = cycle + j;
+                   const isVector = k >= i && k < i + m;
+                   const vIdx = k - i;
+                   
+                   let cellColor = 'bg-zinc-100 text-zinc-400 dark:bg-zinc-800 dark:text-zinc-500 border-zinc-200 dark:border-zinc-700';
+                   let val = 0;
+                   let isVisible = true;
+
+                   if (isVector) {
+                     cellColor = getVectorColor(vIdx);
+                     val = vectors[vIdx]?.[i] ?? 0;
+                   }
+
+                   if (!isVisible) return <div key={`q-${k}`} className="w-8 h-8" />;
+
+                   return (
+                     <div 
+                       key={`q-${k}`} 
+                       className={`w-8 h-8 rounded-md shadow-sm flex items-center justify-center text-[10px] font-bold ${cellColor} transition-all duration-300 border`}
+                     >
+                       {val}
+                     </div>
+                   );
+                })}
+                {slots.length > 0 && cycle <= maxStreamLength && <ArrowRight className="text-zinc-300 dark:text-zinc-700 w-4 h-4 ml-1 shrink-0" />}
               </div>
 
               {/* Hardware Block (PE) */}
@@ -113,7 +122,7 @@ export function PipelineVisualizer({ n, m, cycle, peStates, activeVectors, vecto
         })}
 
         {/* Bottom Output Y */}
-        <div className="flex flex-col items-center mt-2 z-10 w-48 relative ml-48">
+        <div className="flex flex-col items-center mt-2 z-10 w-48 relative ml-64">
           <ArrowDown className="text-green-500/50 w-6 h-6 animate-pulse mb-1" />
           <span className="text-xs font-bold text-green-600 dark:text-green-400 tracking-widest uppercase bg-green-50 dark:bg-green-900/30 px-3 py-1 rounded-full border border-green-200 dark:border-green-900/50 shadow-sm">
             Final Out
@@ -121,7 +130,7 @@ export function PipelineVisualizer({ n, m, cycle, peStates, activeVectors, vecto
         </div>
 
         {/* Connecting vertical line behind PEs */}
-        <div className="absolute left-48 ml-24 top-8 bottom-12 w-1 bg-zinc-200 dark:bg-zinc-800 -z-0"></div>
+        <div className="absolute left-64 ml-24 top-8 bottom-12 w-1 bg-zinc-200 dark:bg-zinc-800 -z-0"></div>
       </div>
     </div>
   );
