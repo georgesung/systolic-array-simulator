@@ -33,10 +33,8 @@ export function PipelineVisualizer({ n, m, cycle, peStates, activeVectors, vecto
       <div className="flex flex-col relative">
         
         {/* Top Input Y */}
-        <div className="flex flex-col items-center mb-2 z-10 w-48 relative ml-64">
-          <span className="text-xs font-bold text-zinc-500 mb-1 tracking-widest uppercase text-center w-full">
-             Y In (0)
-          </span>
+        <div className="flex flex-col items-center mb-2 z-10 w-48 relative ml-48">
+          <span className="text-xs font-bold text-zinc-500 mb-1 tracking-widest uppercase">Y In (0)</span>
           <ArrowDown className="text-zinc-300 dark:text-zinc-700 w-5 h-5 animate-pulse" />
         </div>
 
@@ -64,26 +62,16 @@ export function PipelineVisualizer({ n, m, cycle, peStates, activeVectors, vecto
 
           return (
             <div key={i} className="flex relative items-center mb-2">
-              {/* Left Input Queue (Staggered Bubbles) */}
-              <div className="flex w-64 justify-end items-center pr-4 gap-2 h-12 overflow-visible relative">
-                {Array.from({ length: 8 }).map((_, slotIdx) => {
-                   const slot = slotIdx + 1; // Distance from PE
-                   const vIdx = slot + cycle - i - 1;
-                   const exists = vIdx >= 0 && vIdx < m;
-                   
-                   if (!exists) return <div key={slotIdx} className="w-8 h-8" />;
-
-                   return (
-                     <div 
-                       key={`slot-${slotIdx}`} 
-                       className={`w-8 h-8 rounded-full shadow-md flex items-center justify-center text-[10px] font-bold ${getVectorColor(vIdx)} transition-all duration-500 ease-in-out border-2 border-white/20 dark:border-black/20`}
-                       title={`Vector ${vIdx}, Component ${i}`}
-                     >
-                       {vectors[vIdx]?.[i] ?? 0}
-                     </div>
-                   );
-                })}
-                <ArrowRight className="text-zinc-300 dark:text-zinc-700 w-4 h-4 ml-1 shrink-0" />
+              {/* Left Input Queue */}
+              <div className="flex w-48 justify-end items-center pr-4 gap-1 overflow-visible">
+                {pendingVectors.slice(0, 5).reverse().map((vIdx, qIdx) => (
+                   <div key={`q-${vIdx}`} className={`w-8 h-8 rounded shadow-sm flex items-center justify-center text-[10px] font-bold ${getVectorColor(vIdx)} transition-all duration-500 ease-in-out transform -translate-x-2`}>
+                     {vectors[vIdx]?.[i] ?? 0}
+                   </div>
+                ))}
+                {pendingVectors.length > 5 && <span className="text-xs text-zinc-400 ml-1 font-mono">...</span>}
+                {pendingVectors.length > 0 && <ArrowRight className="text-zinc-300 dark:text-zinc-700 w-4 h-4 ml-1" />}
+                {pendingVectors.length === 0 && cycle <= i && <span className="text-[10px] text-zinc-400 italic">waiting...</span>}
               </div>
 
               {/* Hardware Block (PE) */}
@@ -125,7 +113,7 @@ export function PipelineVisualizer({ n, m, cycle, peStates, activeVectors, vecto
         })}
 
         {/* Bottom Output Y */}
-        <div className="flex flex-col items-center mt-2 z-10 w-48 relative ml-64">
+        <div className="flex flex-col items-center mt-2 z-10 w-48 relative ml-48">
           <ArrowDown className="text-green-500/50 w-6 h-6 animate-pulse mb-1" />
           <span className="text-xs font-bold text-green-600 dark:text-green-400 tracking-widest uppercase bg-green-50 dark:bg-green-900/30 px-3 py-1 rounded-full border border-green-200 dark:border-green-900/50 shadow-sm">
             Final Out
@@ -133,7 +121,7 @@ export function PipelineVisualizer({ n, m, cycle, peStates, activeVectors, vecto
         </div>
 
         {/* Connecting vertical line behind PEs */}
-        <div className="absolute left-64 ml-24 top-8 bottom-12 w-1 bg-zinc-200 dark:bg-zinc-800 -z-0"></div>
+        <div className="absolute left-48 ml-24 top-8 bottom-12 w-1 bg-zinc-200 dark:bg-zinc-800 -z-0"></div>
       </div>
     </div>
   );
