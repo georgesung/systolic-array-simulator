@@ -1,6 +1,9 @@
 /target
 .DS_Store
 
+# --- Rust/WASM Build Artifacts ---
+/pkg/
+
 # Python / Virtual Environment
 .venv/
 __pycache__/
