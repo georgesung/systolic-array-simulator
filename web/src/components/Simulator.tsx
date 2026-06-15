@@ -8,7 +8,7 @@ import { Textarea } from '@/components/ui/textarea';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { PipelineVisualizer } from '@/components/PipelineVisualizer';
-import { Play, Pause, StepForward, RotateCcw } from 'lucide-react';
+import { Play, Pause, StepForward, RotateCcw, Dices } from 'lucide-react';
 
 export function Simulator() {
   const [n, setN] = useState(3);
@@ -16,6 +16,18 @@ export function Simulator() {
   const [weightsStr, setWeightsStr] = useState("1, 2, 3");
   const [vectorsStr, setVectorsStr] = useState("10, 20, 30\n5, 10, 15");
   const [isAutoPlaying, setIsAutoPlaying] = useState(false);
+
+  const handleRandomizeWeights = () => {
+    const newWeights = Array.from({ length: n }, () => Math.floor(Math.random() * 11) - 5);
+    setWeightsStr(newWeights.join(', '));
+  };
+
+  const handleRandomizeVectors = () => {
+    const newVectors = Array.from({ length: m }, () => {
+      return Array.from({ length: n }, () => Math.floor(Math.random() * 11) - 5).join(', ');
+    }).join('\n');
+    setVectorsStr(newVectors);
+  };
 
   const weights = useMemo(() => 
     weightsStr.split(',').map(v => parseFloat(v.trim()) || 0), 
@@ -119,7 +131,12 @@ export function Simulator() {
               </div>
             </div>
             <div className="space-y-2">
-              <label className="text-xs font-bold text-muted-foreground uppercase">Weights (W)</label>
+              <div className="flex justify-between items-center">
+                <label className="text-xs font-bold text-muted-foreground uppercase">Weights (W)</label>
+                <Button variant="ghost" size="sm" className="h-6 px-2 text-xs" onClick={handleRandomizeWeights}>
+                  <Dices className="w-3 h-3 mr-1" /> RNG
+                </Button>
+              </div>
               <Input 
                 type="text" 
                 value={weightsStr} 
@@ -139,7 +156,12 @@ export function Simulator() {
           </CardHeader>
           <CardContent className="space-y-4">
             <div className="space-y-2">
-              <label className="text-xs font-bold text-muted-foreground uppercase">One vector per line, comma separated</label>
+              <div className="flex justify-between items-center">
+                <label className="text-xs font-bold text-muted-foreground uppercase">One vector per line, comma separated</label>
+                <Button variant="ghost" size="sm" className="h-6 px-2 text-xs" onClick={handleRandomizeVectors}>
+                  <Dices className="w-3 h-3 mr-1" /> RNG
+                </Button>
+              </div>
               <Textarea 
                 value={vectorsStr} 
                 onChange={e => setVectorsStr(e.target.value)} 
