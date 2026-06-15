@@ -1,2 +1,9 @@
 /target
 .DS_Store
+
+# Python / Virtual Environment
+.venv/
+__pycache__/
+
+# MkDocs
+site/
