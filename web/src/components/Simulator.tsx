@@ -18,13 +18,13 @@ export function Simulator() {
   const [isAutoPlaying, setIsAutoPlaying] = useState(false);
 
   const handleRandomizeWeights = () => {
-    const newWeights = Array.from({ length: n }, () => Math.floor(Math.random() * 11) - 5);
+    const newWeights = Array.from({ length: n }, () => Math.floor(Math.random() * 21) - 10);
     setWeightsStr(newWeights.join(', '));
   };
 
   const handleRandomizeVectors = () => {
     const newVectors = Array.from({ length: m }, () => {
-      return Array.from({ length: n }, () => Math.floor(Math.random() * 11) - 5).join(', ');
+      return Array.from({ length: n }, () => Math.floor(Math.random() * 21) - 10).join(', ');
     }).join('\n');
     setVectorsStr(newVectors);
   };
