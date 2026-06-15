@@ -31,6 +31,43 @@ export function Simulator() {
 
   const { peStates, cycle, tick, reset, isLoaded, isComplete, history, activeVectors } = usePipeline(n, m, weights, vectors);
 
+  // Auto-adjust weights and vectors strings when n or m changes
+  useEffect(() => {
+    setWeightsStr(prev => {
+      let w = prev.split(',').map(v => v.trim()).filter(v => v !== '');
+      if (w.length < n) {
+        w = [...w, ...Array(n - w.length).fill('0')];
+      } else if (w.length > n) {
+        w = w.slice(0, n);
+      }
+      return w.join(', ');
+    });
+
+    setVectorsStr(prev => {
+      let vLines = prev.split('\n').filter(line => line.trim() !== '');
+      
+      // Update m (number of lines)
+      if (vLines.length < m) {
+        vLines = [...vLines, ...Array(m - vLines.length).fill('')];
+      } else if (vLines.length > m) {
+        vLines = vLines.slice(0, m);
+      }
+      
+      // Update n (length of each line)
+      vLines = vLines.map(line => {
+        let v = line === '' ? [] : line.split(',').map(val => val.trim());
+        if (v.length < n) {
+          v = [...v, ...Array(n - v.length).fill('0')];
+        } else if (v.length > n) {
+          v = v.slice(0, n);
+        }
+        return v.join(', ');
+      });
+      
+      return vLines.join('\n');
+    });
+  }, [n, m]);
+
   // Auto-Play Effect
   useEffect(() => {
     let intervalId: NodeJS.Timeout;
