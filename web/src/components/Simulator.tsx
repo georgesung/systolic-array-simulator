@@ -57,9 +57,9 @@ export function Simulator() {
     <div className="flex flex-col gap-8 w-full max-w-5xl mx-auto px-4 pb-20">
       <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
         {/* Configuration Section */}
-        <Card>
+        <Card className="border-none shadow-md bg-white dark:bg-zinc-950">
           <CardHeader>
-            <CardTitle>Pipeline Config</CardTitle>
+            <CardTitle className="text-xl font-bold tracking-tight">Pipeline Config</CardTitle>
             <CardDescription>Setup your processing elements and weights.</CardDescription>
           </CardHeader>
           <CardContent className="space-y-4">
@@ -95,9 +95,9 @@ export function Simulator() {
         </Card>
 
         {/* Inputs Section */}
-        <Card>
+        <Card className="border-none shadow-md bg-white dark:bg-zinc-950">
           <CardHeader>
-            <CardTitle>Input Vectors (X)</CardTitle>
+            <CardTitle className="text-xl font-bold tracking-tight">Input Vectors (X)</CardTitle>
             <CardDescription>Define the data to flow through the pipeline.</CardDescription>
           </CardHeader>
           <CardContent className="space-y-4">
@@ -119,11 +119,11 @@ export function Simulator() {
       </div>
 
       {/* Execution Section */}
-      <Card>
-        <CardHeader className="flex flex-row items-center justify-between pb-4">
-          <div className="space-y-1.5">
-            <CardTitle>Simulation Stage</CardTitle>
-            <CardDescription>Watch the data propagate through the systolic array.</CardDescription>
+      <Card className="border-none shadow-xl shadow-zinc-200/50 dark:shadow-none bg-white dark:bg-zinc-950">
+        <CardHeader className="flex flex-row items-center justify-between pb-8 space-y-0">
+          <div className="space-y-1">
+            <CardTitle className="text-2xl font-bold tracking-tight">Simulation Stage</CardTitle>
+            <CardDescription className="text-zinc-500">Real-time visualization of the hardware state.</CardDescription>
           </div>
           <div className="flex items-center gap-2">
             <span className="text-sm font-mono bg-muted px-3 py-1.5 rounded-md mr-2 border">Cycle: {cycle}</span>
@@ -183,33 +183,33 @@ export function Simulator() {
       </Card>
 
       {/* Results History */}
-      <Card>
+      <Card className="border-none shadow-lg bg-zinc-900 dark:bg-zinc-900 text-white">
         <CardHeader>
           <div className="flex items-center gap-2">
-            <CardTitle>Results Log</CardTitle>
-            {isComplete && <span className="text-[10px] bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-400 px-2 py-0.5 rounded-full uppercase font-bold tracking-tighter">Finished</span>}
+            <CardTitle className="text-white">Results Log</CardTitle>
+            {isComplete && <span className="text-[10px] bg-green-500 text-white px-2 py-0.5 rounded-full uppercase font-bold tracking-tighter">Completed</span>}
           </div>
         </CardHeader>
         <CardContent>
-          <div className="space-y-1 max-h-60 overflow-y-auto font-mono text-sm pr-2">
+          <div className="space-y-1 max-h-60 overflow-y-auto font-mono text-sm pr-2 scrollbar-thin scrollbar-thumb-zinc-700">
             {[...history].reverse().map((h, i) => {
               const finishedV = h.cycle - n;
               const vectorCompleted = finishedV >= 0 && finishedV < m;
               
               return (
-                <div key={h.cycle} className={`flex justify-between p-2 rounded-md transition-colors ${vectorCompleted ? 'bg-green-50 dark:bg-green-900/20' : 'hover:bg-muted/50'}`}>
-                  <span className="text-muted-foreground">Cycle {h.cycle.toString().padStart(2, '0')}:</span>
+                <div key={h.cycle} className={`flex justify-between p-2 rounded-md transition-colors ${vectorCompleted ? 'bg-zinc-800' : 'hover:bg-zinc-800/50'}`}>
+                  <span className="text-zinc-400">Cycle {h.cycle.toString().padStart(2, '0')}:</span>
                   {vectorCompleted ? (
-                    <span className="text-green-600 dark:text-green-400 font-bold">
+                    <span className="text-green-400 font-bold">
                       [Vector {finishedV}] Done! Result = {h.output.toFixed(2)}
                     </span>
                   ) : (
-                    <span className="text-muted-foreground/60 italic">Data propagating...</span>
+                    <span className="text-zinc-500 italic">Data propagating...</span>
                   )}
                 </div>
               );
             })}
-            {history.length === 0 && <div className="text-muted-foreground italic text-center py-8">No cycles executed yet.</div>}
+            {history.length === 0 && <div className="text-zinc-500 italic text-center py-8">No cycles executed yet.</div>}
           </div>
         </CardContent>
       </Card>
