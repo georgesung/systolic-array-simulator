@@ -87,7 +87,13 @@ export function Simulator() {
     [vectorsStr]
   );
 
-  const { peStates, cycle, tick, reset, isLoaded, isComplete, activeVectors } = usePipeline(n, m, weights, vectors);
+  const expectedValues = useMemo(() => {
+    return vectors.map(vec => 
+      vec.reduce((sum, val, idx) => sum + val * (weights[idx] || 0), 0)
+    );
+  }, [vectors, weights]);
+
+  const { peStates, cycle, tick, reset, isLoaded, isComplete, history, activeVectors } = usePipeline(n, m, weights, vectors);
 
   // Auto-Play Effect
   useEffect(() => {
@@ -250,6 +256,44 @@ export function Simulator() {
                 )}
               </TableBody>
             </Table>
+          </div>
+        </CardContent>
+      </Card>
+
+      {/* Results History */}
+      <Card className="border-none shadow-lg bg-zinc-900 dark:bg-zinc-900 text-white">
+        <CardHeader>
+          <div className="flex items-center gap-2">
+            <CardTitle className="text-white">Results Log</CardTitle>
+            {isComplete && <span className="text-[10px] bg-green-500 text-white px-2 py-0.5 rounded-full uppercase font-bold tracking-tighter">Completed</span>}
+          </div>
+        </CardHeader>
+        <CardContent>
+          <div className="space-y-1 max-h-60 overflow-y-auto font-mono text-sm pr-2 scrollbar-thin scrollbar-thumb-zinc-700">
+            {[...history].reverse().map((h) => {
+              const finishedV = h.cycle - n - 1;
+              const vectorCompleted = finishedV >= 0 && finishedV < m;
+              const expectedVal = vectorCompleted ? expectedValues[finishedV] : 0;
+              
+              return (
+                <div key={h.cycle} className={`flex justify-between items-center p-2 rounded-md transition-colors ${vectorCompleted ? 'bg-zinc-800' : 'hover:bg-zinc-800/50'}`}>
+                  <span className="text-zinc-400">Cycle {h.cycle.toString().padStart(2, '0')}:</span>
+                  {vectorCompleted ? (
+                    <div className="flex flex-col sm:flex-row sm:items-center gap-2 sm:gap-6 text-right">
+                      <span className="text-xs text-zinc-400">
+                        Expected (TS): <span className="font-mono text-blue-400 font-semibold">{expectedVal.toFixed(2)}</span>
+                      </span>
+                      <span className="text-green-400 font-bold">
+                        [Vector {finishedV}] Simulated = {h.output.toFixed(2)}
+                      </span>
+                    </div>
+                  ) : (
+                    <span className="text-zinc-500 italic">Data propagating...</span>
+                  )}
+                </div>
+              );
+            })}
+            {history.length === 0 && <div className="text-zinc-500 italic text-center py-8">No cycles executed yet.</div>}
           </div>
         </CardContent>
       </Card>
