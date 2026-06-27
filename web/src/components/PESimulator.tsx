@@ -328,7 +328,7 @@ export function PESimulator() {
                 </div>
 
                 {/* Center: The Processing Element Boundary Box */}
-                <div className="w-[320px] h-[240px] bg-white dark:bg-zinc-900 border-2 border-zinc-200 dark:border-zinc-800 rounded-2xl shadow-md p-5 flex flex-col justify-between relative z-10">
+                <div className="w-[320px] h-[190px] bg-white dark:bg-zinc-900 border-2 border-zinc-200 dark:border-zinc-800 rounded-2xl shadow-md p-5 flex flex-col justify-between relative z-10">
                   
                   {/* Header Label inside box */}
                   <div className="flex justify-between items-center pb-2 border-b border-zinc-100 dark:border-zinc-800">
@@ -370,27 +370,6 @@ export function PESimulator() {
 
                     {/* Connector lines (dashed) */}
                     <div className="absolute left-[25%] right-[25%] top-[60%] border-t border-zinc-200 dark:border-zinc-800 border-dashed z-0" />
-                  </div>
-
-                  {/* Registered Outputs (At Clock registers) */}
-                  <div className="border-t border-zinc-100 dark:border-zinc-800 pt-3 flex justify-between gap-3">
-                    
-                    {/* Reg X Out */}
-                    <div className="flex-1 bg-zinc-50 dark:bg-zinc-950 rounded-lg px-2 py-1 border flex justify-between items-center text-[10px] font-mono">
-                      <span className="text-zinc-400 font-sans">Reg_X:</span>
-                      <span className="font-bold text-blue-600 dark:text-blue-400">
-                        {peState.regXOut.toFixed(1)}
-                      </span>
-                    </div>
-
-                    {/* Reg Y Out */}
-                    <div className="flex-1 bg-zinc-50 dark:bg-zinc-950 rounded-lg px-2 py-1 border flex justify-between items-center text-[10px] font-mono">
-                      <span className="text-zinc-400 font-sans">Reg_Y:</span>
-                      <span className="font-bold text-orange-600 dark:text-orange-400">
-                        {peState.regYOut.toFixed(1)}
-                      </span>
-                    </div>
-
                   </div>
 
                 </div>
