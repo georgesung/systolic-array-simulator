@@ -15,6 +15,9 @@ const geistMono = Geist_Mono({
 export const metadata: Metadata = {
   title: "Pipelined Dot Product Simulator",
   description: "A hardware simulator built with Rust and WASM",
+  icons: {
+    icon: "/favicon.svg",
+  },
 };
 
 export default function RootLayout({
