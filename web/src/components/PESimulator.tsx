@@ -47,6 +47,22 @@ export function PESimulator() {
   const [cycle, setCycle] = useState<number>(0);
   const [peState, setPeState] = useState<PEState>({ regXOut: 0, regYOut: 0 });
   const [history, setHistory] = useState<PEHistoryEntry[]>([]);
+  const [isInitialized, setIsInitialized] = useState<boolean>(false);
+
+  // Track previous inputs to detect changes synchronously and reset simulation initialization
+  const [prevWeightInput, setPrevWeightInput] = useState<string>(weightInput);
+  const [prevXStreamInput, setPrevXStreamInput] = useState<string>(xStreamInput);
+  const [prevYStreamInput, setPrevYStreamInput] = useState<string>(yStreamInput);
+
+  if (weightInput !== prevWeightInput || xStreamInput !== prevXStreamInput || yStreamInput !== prevYStreamInput) {
+    setPrevWeightInput(weightInput);
+    setPrevXStreamInput(xStreamInput);
+    setPrevYStreamInput(yStreamInput);
+    setCycle(0);
+    setPeState({ regXOut: 0, regYOut: 0 });
+    setHistory([]);
+    setIsInitialized(false);
+  }
 
   // Parse Streams
   const xStream = useMemo(() => 
@@ -129,18 +145,25 @@ export function PESimulator() {
     setCycle(0);
     setPeState({ regXOut: 0, regYOut: 0 });
     setHistory([]);
+    setIsInitialized(true);
   };
 
   // Auto-play effect
   useEffect(() => {
     let intervalId: NodeJS.Timeout;
-    if (isAutoPlaying && !isComplete) {
+    if (isAutoPlaying && !isComplete && isInitialized) {
       intervalId = setInterval(() => {
         tick();
       }, 1500); // 1.5 seconds per cycle for educational speed
+    } else if ((isComplete || !isInitialized) && isAutoPlaying) {
+      // Defer state update to avoid calling setState synchronously within the effect body
+      const handle = requestAnimationFrame(() => {
+        setIsAutoPlaying(false);
+      });
+      return () => cancelAnimationFrame(handle);
     }
     return () => clearInterval(intervalId);
-  }, [isAutoPlaying, isComplete, tick]);
+  }, [isAutoPlaying, isComplete, isInitialized, tick]);
 
   return (
     <div className="flex flex-col gap-8 w-full max-w-5xl mx-auto px-4 pb-20">
@@ -220,8 +243,8 @@ export function PESimulator() {
                 <Dices className="w-3.5 h-3.5 mr-1" /> Randomize Streams
               </Button>
             </div>
-            <Button onClick={handleReset} className="w-full" variant="secondary">
-              <RotateCcw className="w-4 h-4 mr-2" /> Reset & Load Configurations
+            <Button onClick={handleReset} className="w-full" variant={isInitialized ? "secondary" : "default"}>
+              <RotateCcw className="w-4 h-4 mr-2" /> Load/Reset Simulation
             </Button>
           </CardContent>
         </Card>
@@ -240,7 +263,7 @@ export function PESimulator() {
             </span>
             <Button 
               onClick={() => setIsAutoPlaying(!isAutoPlaying)} 
-              disabled={isComplete}
+              disabled={isComplete || !isInitialized}
               variant={isAutoPlaying ? "secondary" : "default"}
               className="w-32 shadow-sm cursor-pointer"
             >
@@ -248,7 +271,7 @@ export function PESimulator() {
             </Button>
             <Button 
               onClick={tick} 
-              disabled={isComplete || isAutoPlaying}
+              disabled={isComplete || isAutoPlaying || !isInitialized}
               variant="outline"
               className="w-32 shadow-sm cursor-pointer"
             >
