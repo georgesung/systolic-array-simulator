@@ -17,12 +17,12 @@ export default function Home() {
       case 'dot-product':
         return {
           title: 'Pipelined Dot Product',
-          subtitle: 'Interactive hardware simulation powered by Rust and WebAssembly. Observe data flow through a 1D systolic array in real-time.',
+          subtitle: 'Dot product via a 1D array of PEs. One "column" in a systolic array.',
         };
       case 'matrix-multiply':
         return {
-          title: '2D Systolic Array Matrix Multiply',
-          subtitle: 'Simulate a fully parallel, cycle-accurate 2D hardware grid. Watch row and column inputs propagate and accumulate live.',
+          title: 'Systolic Array Matrix Multiply',
+          subtitle: '2D grid of PEs to compute matrix multiplication. A series of dot products!',
         };
       case 'playground':
         return {
@@ -163,7 +163,7 @@ export default function Home() {
               <CardContent className="p-8 flex flex-col items-center justify-center min-h-[350px]">
                 {/* Simulated 2D grid */}
                 <div className="grid grid-cols-3 gap-12 relative p-10 bg-zinc-50 dark:bg-zinc-900/50 rounded-2xl border border-dashed border-zinc-200 dark:border-zinc-800 max-w-xl w-full my-8">
-                  
+
                   {/* Row Inputs Indicators */}
                   <div className="absolute -left-12 top-[calc(50%-4px)] -translate-y-1/2 flex flex-col gap-20 text-zinc-400 dark:text-zinc-600 font-mono text-xs font-semibold">
                     <span>A₀ ──&gt;</span>
@@ -214,7 +214,7 @@ export default function Home() {
                     <GraduationCap className="w-4 h-4 text-blue-500" /> Educational Concept
                   </h4>
                   <p className="text-sm text-zinc-500 dark:text-zinc-400 leading-relaxed">
-                    For 2D Matrix Multiplication, inputs from Matrix A enter from the left, while Matrix B inputs stream from the top. 
+                    For 2D Matrix Multiplication, inputs from Matrix A enter from the left, while Matrix B inputs stream from the top.
                     Each Processing Element multiplies its current inputs, adds the partial result, and passes the values downstream with a single-cycle register delay.
                   </p>
                 </div>
