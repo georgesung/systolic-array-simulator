@@ -30,11 +30,11 @@ const X_COLORS = [
 ];
 
 const Y_COLORS = [
-  'bg-emerald-500 text-white dark:bg-emerald-600 border-emerald-400',
-  'bg-teal-500 text-white dark:bg-teal-600 border-teal-400',
-  'bg-green-500 text-white dark:bg-green-600 border-green-400',
-  'bg-lime-500 text-white dark:bg-lime-600 border-lime-400',
+  'bg-orange-500 text-white dark:bg-orange-600 border-orange-400',
+  'bg-amber-500 text-white dark:bg-amber-600 border-amber-400',
   'bg-rose-500 text-white dark:bg-rose-600 border-rose-400',
+  'bg-red-500 text-white dark:bg-red-600 border-red-400',
+  'bg-pink-500 text-white dark:bg-pink-600 border-pink-400',
 ];
 
 export function PESimulator() {
@@ -358,12 +358,12 @@ export function PESimulator() {
                     {/* Right Column: Adder */}
                     <div className="flex flex-col items-center justify-center gap-2 relative">
                       {/* Adder Symbol */}
-                      <div className="bg-green-50 dark:bg-green-950/40 border-2 border-green-200 dark:border-green-900 rounded-full w-8 h-8 flex items-center justify-center text-xs font-bold text-green-600 dark:text-green-400 font-mono">
+                      <div className="bg-orange-50 dark:bg-orange-950/40 border-2 border-orange-200 dark:border-orange-900 rounded-full w-8 h-8 flex items-center justify-center text-xs font-bold text-orange-600 dark:text-orange-400 font-mono">
                         +
                       </div>
                       
                       {/* Live combinational calculation display */}
-                      <div className="text-[9px] text-green-600 dark:text-green-400 font-mono border border-dashed border-green-200 dark:border-green-900/50 p-1 rounded bg-zinc-50 dark:bg-zinc-950">
+                      <div className="text-[9px] text-orange-600 dark:text-orange-400 font-mono border border-dashed border-orange-200 dark:border-orange-900/50 p-1 rounded bg-zinc-50 dark:bg-zinc-950">
                         ({currentXIn} × {parsedWeight}) + {currentYIn} = {(currentXIn * parsedWeight + currentYIn).toFixed(1)}
                       </div>
                     </div>
@@ -386,7 +386,7 @@ export function PESimulator() {
                     {/* Reg Y Out */}
                     <div className="flex-1 bg-zinc-50 dark:bg-zinc-950 rounded-lg px-2 py-1 border flex justify-between items-center text-[10px] font-mono">
                       <span className="text-zinc-400 font-sans">Reg_Y:</span>
-                      <span className="font-bold text-green-600 dark:text-green-400">
+                      <span className="font-bold text-orange-600 dark:text-orange-400">
                         {peState.regYOut.toFixed(1)}
                       </span>
                     </div>
@@ -424,7 +424,9 @@ export function PESimulator() {
                 <span className="text-[10px] font-bold text-zinc-400 uppercase tracking-widest mb-1.5 font-sans">Reg_Y Output</span>
                 {cycle > 0 ? (
                   <div
-                    className="w-12 h-12 rounded-xl shadow-md flex flex-col items-center justify-center border bg-green-500 text-white dark:bg-green-600 border-green-400 text-xs font-bold"
+                    className={`w-12 h-12 rounded-xl shadow-md flex flex-col items-center justify-center border text-xs font-bold transition-all duration-300 ${
+                      Y_COLORS[(cycle - 1) % Y_COLORS.length]
+                    }`}
                   >
                     <span className="text-[8px] opacity-75 font-mono uppercase font-bold">Accum</span>
                     <span>{peState.regYOut}</span>
@@ -447,10 +449,10 @@ export function PESimulator() {
                   <TableHead className="w-[80px]">Cycle</TableHead>
                   <TableHead className="text-center font-bold text-blue-600">X Input (X_in)</TableHead>
                   <TableHead className="text-center font-bold text-amber-600">Weight (W)</TableHead>
-                  <TableHead className="text-center font-bold text-green-600">Y Input (Y_in)</TableHead>
+                  <TableHead className="text-center font-bold text-orange-600">Y Input (Y_in)</TableHead>
                   <TableHead className="text-center">Computed MAC (X * W + Y)</TableHead>
                   <TableHead className="text-center font-bold text-blue-500">Reg X Out (Next)</TableHead>
-                  <TableHead className="text-center font-bold text-green-500">Reg Y Out (Next)</TableHead>
+                  <TableHead className="text-center font-bold text-orange-500">Reg Y Out (Next)</TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
@@ -459,12 +461,12 @@ export function PESimulator() {
                     <TableCell className="font-mono font-bold text-zinc-600 dark:text-zinc-400">#{h.cycle}</TableCell>
                     <TableCell className="font-mono text-center text-blue-600/90">{h.xIn.toFixed(1)}</TableCell>
                     <TableCell className="font-mono text-center text-amber-600/90">{h.weight.toFixed(1)}</TableCell>
-                    <TableCell className="font-mono text-center text-green-600/90">{h.yIn.toFixed(1)}</TableCell>
+                    <TableCell className="font-mono text-center text-orange-600/90">{h.yIn.toFixed(1)}</TableCell>
                     <TableCell className="font-mono text-center bg-zinc-50 dark:bg-zinc-900 text-xs text-zinc-500">
                       ({h.xIn} * {h.weight}) + {h.yIn} = { (h.xIn * h.weight + h.yIn).toFixed(1) }
                     </TableCell>
                     <TableCell className="font-mono text-center text-blue-500 font-semibold">{h.xOut.toFixed(1)}</TableCell>
-                    <TableCell className="font-mono text-center text-green-500 font-semibold">{h.yOut.toFixed(1)}</TableCell>
+                    <TableCell className="font-mono text-center text-orange-500 font-semibold">{h.yOut.toFixed(1)}</TableCell>
                   </TableRow>
                 ))}
                 {history.length === 0 && (
