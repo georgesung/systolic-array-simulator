@@ -93,16 +93,16 @@ export function Simulator() {
     );
   }, [vectors, weights]);
 
-  const { peStates, cycle, tick, reset, isLoaded, isComplete, history, activeVectors } = usePipeline(n, m, weights, vectors);
+  const { peStates, cycle, tick, reset, isLoaded, isComplete, history, activeVectors, isInitialized } = usePipeline(n, m, weights, vectors);
 
   // Auto-Play Effect
   useEffect(() => {
     let intervalId: NodeJS.Timeout;
-    if (isAutoPlaying && !isComplete) {
+    if (isAutoPlaying && !isComplete && isInitialized) {
       intervalId = setInterval(() => {
         tick();
       }, 1000); // 1 second per cycle
-    } else if (isComplete && isAutoPlaying) {
+    } else if ((isComplete || !isInitialized) && isAutoPlaying) {
       // Defer state update to avoid calling setState synchronously within the effect body
       const handle = requestAnimationFrame(() => {
         setIsAutoPlaying(false);
@@ -110,7 +110,7 @@ export function Simulator() {
       return () => cancelAnimationFrame(handle);
     }
     return () => clearInterval(intervalId);
-  }, [isAutoPlaying, isComplete, tick]);
+  }, [isAutoPlaying, isComplete, isInitialized, tick]);
 
   const handleReset = () => {
     setIsAutoPlaying(false);
@@ -189,8 +189,8 @@ export function Simulator() {
                 placeholder="10, 20, 30&#10;5, 10, 15"
               />
             </div>
-            <Button onClick={handleReset} className="w-full" variant="secondary">
-              <RotateCcw className="w-4 h-4 mr-2" /> Apply & Reset Simulation
+            <Button onClick={handleReset} className="w-full" variant={isInitialized ? "secondary" : "default"}>
+              <RotateCcw className="w-4 h-4 mr-2" /> Load/Reset Simulation
             </Button>
           </CardContent>
         </Card>
@@ -207,7 +207,7 @@ export function Simulator() {
             <span className="text-sm font-mono bg-muted px-3 py-1.5 rounded-md mr-2 border">Cycle: {cycle}</span>
             <Button 
               onClick={() => setIsAutoPlaying(!isAutoPlaying)} 
-              disabled={isComplete}
+              disabled={isComplete || !isInitialized}
               variant={isAutoPlaying ? "secondary" : "default"}
               className="w-32 shadow-sm"
             >
@@ -215,7 +215,7 @@ export function Simulator() {
             </Button>
             <Button 
               onClick={() => tick()} 
-              disabled={isComplete || isAutoPlaying}
+              disabled={isComplete || isAutoPlaying || !isInitialized}
               variant="outline"
               className="w-32 shadow-sm"
             >

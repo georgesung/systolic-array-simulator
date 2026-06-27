@@ -1,6 +1,16 @@
 import { useEffect, useState, useCallback, useRef } from 'react';
 import init, { DotProductSim } from 'rust-hw-playground';
 
+interface WasmInstance {
+  __wbg_ptr: number;
+}
+
+function isValidWasmInstance(sim: DotProductSim | null): sim is DotProductSim & WasmInstance {
+  if (sim === null) return false;
+  const temp = sim as unknown as WasmInstance;
+  return typeof temp.__wbg_ptr === 'number' && temp.__wbg_ptr !== 0;
+}
+
 export interface PEState {
   weight: number;
   xOut: number;
@@ -20,10 +30,13 @@ export function usePipeline(n: number, m: number, weights: number[], vectors: nu
   const [isLoaded, setIsLoaded] = useState(false);
   const [history, setHistory] = useState<{cycle: number, states: PEState[], output: number}[]>([]);
   const [activeVectors, setActiveVectors] = useState<(number | null)[]>(() => Array(n).fill(null));
+  const [isInitialized, setIsInitialized] = useState(false);
 
-  // Track previous n and weights to detect changes synchronously and reset React states
+  // Track previous inputs to detect changes synchronously and reset React states
   const [prevN, setPrevN] = useState(n);
+  const [prevM, setPrevM] = useState(m);
   const [prevWeights, setPrevWeights] = useState(weights);
+  const [prevVectors, setPrevVectors] = useState(vectors);
 
   // Initialize WASM
   useEffect(() => {
@@ -39,12 +52,15 @@ export function usePipeline(n: number, m: number, weights: number[], vectors: nu
   }, []);
 
   // Synchronous state adjustments during render when props change
-  if (n !== prevN || weights !== prevWeights) {
+  if (n !== prevN || m !== prevM || weights !== prevWeights || vectors !== prevVectors) {
     setPrevN(n);
+    setPrevM(m);
     setPrevWeights(weights);
+    setPrevVectors(vectors);
     setCycle(0);
     setHistory([]);
     setActiveVectors(Array(n).fill(null));
+    setIsInitialized(false);
     
     // We can initialize peStates synchronously during render without calling WASM,
     // since all PE registers are initially 0.0 and weights are loaded from props.
@@ -99,11 +115,12 @@ export function usePipeline(n: number, m: number, weights: number[], vectors: nu
       }))
     );
     setActiveVectors(Array(n).fill(null));
+    setIsInitialized(true);
   }, [n, weights, isLoaded]);
 
   const tick = useCallback(() => {
     const sim = simRef.current;
-    if (!sim || !sim.__wbg_ptr) return; // Guard against null and freed/nullified internal pointers
+    if (!isValidWasmInstance(sim)) return; // Guard against null and freed/nullified internal pointers
 
     const nextCycle = cycle + 1;
     const currentXIns = new Float32Array(n);
@@ -148,6 +165,7 @@ export function usePipeline(n: number, m: number, weights: number[], vectors: nu
     isLoaded, 
     isComplete, 
     history,
-    activeVectors
+    activeVectors,
+    isInitialized
   };
 }
