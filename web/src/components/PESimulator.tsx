@@ -21,6 +21,22 @@ interface PEHistoryEntry {
   yOut: number;
 }
 
+const X_COLORS = [
+  'bg-blue-500 text-white dark:bg-blue-600 border-blue-400',
+  'bg-indigo-500 text-white dark:bg-indigo-600 border-indigo-400',
+  'bg-sky-500 text-white dark:bg-sky-600 border-sky-400',
+  'bg-cyan-500 text-white dark:bg-cyan-600 border-cyan-400',
+  'bg-purple-500 text-white dark:bg-purple-600 border-purple-400',
+];
+
+const Y_COLORS = [
+  'bg-emerald-500 text-white dark:bg-emerald-600 border-emerald-400',
+  'bg-teal-500 text-white dark:bg-teal-600 border-teal-400',
+  'bg-green-500 text-white dark:bg-green-600 border-green-400',
+  'bg-lime-500 text-white dark:bg-lime-600 border-lime-400',
+  'bg-rose-500 text-white dark:bg-rose-600 border-rose-400',
+];
+
 export function PESimulator() {
   const [weightInput, setWeightInput] = useState<string>('3.0');
   const [xStreamInput, setXStreamInput] = useState<string>('2, 4, 6, 8');
@@ -67,7 +83,7 @@ export function PESimulator() {
     setYStreamInput(ys.join(', '));
   };
 
-  // Perform one tick/step (wrapped in useCallback to satisfy dependency rules)
+  // Perform one tick/step
   const tick = useCallback(() => {
     if (cycle >= maxCycles) {
       setIsAutoPlaying(false);
@@ -146,7 +162,7 @@ export function PESimulator() {
                   onClick={handleRandomizeWeight}
                   disabled={cycle > 0}
                 >
-                  <Dices className="w-3 h-3 mr-1" /> RNG
+                  <Dices className="w-3.5 h-3.5 mr-1" /> RNG
                 </Button>
               </div>
               <Input 
@@ -242,120 +258,182 @@ export function PESimulator() {
         </CardHeader>
         <CardContent className="flex flex-col items-center">
           
-          {/* Main Visual Canvas */}
-          <div className="w-full max-w-4xl bg-zinc-50/50 dark:bg-black rounded-2xl border p-12 relative flex flex-col items-center justify-center min-h-[420px] mb-8 overflow-hidden shadow-inner">
+          {/* Main Visual Canvas (Horizontal-centric queue and structural map) */}
+          <div className="w-full max-w-4xl bg-zinc-50/50 dark:bg-black rounded-2xl border p-6 relative flex flex-col items-center justify-center min-h-[480px] mb-8 overflow-hidden shadow-inner">
             
-            {/* Input Queues Visualizer */}
-            <div className="absolute top-4 left-6 flex flex-col gap-1 text-[11px] text-zinc-400 font-mono bg-white dark:bg-zinc-950 p-2.5 rounded-lg border shadow-sm max-w-[200px]">
-              <span className="font-bold text-zinc-500 border-b pb-1 mb-1">Queue Status</span>
-              <span>Next X_in: {currentXIn} (Index {cycle})</span>
-              <span>Next Y_in: {currentYIn} (Index {cycle})</span>
-              <span>Remaining Cycles: {Math.max(0, maxCycles - cycle)}</span>
+            {/* Input Queues Metadata Bubble */}
+            <div className="absolute top-4 left-6 flex flex-col gap-1 text-[11px] text-zinc-400 font-mono bg-white dark:bg-zinc-950 p-2.5 rounded-lg border shadow-sm max-w-[200px] z-10">
+              <span className="font-bold text-zinc-500 border-b pb-1 mb-1 font-sans">Queue Status</span>
+              <span>Next X_in: {cycle < xStream.length ? xStream[cycle] : 0} (Index {cycle})</span>
+              <span>Next Y_in: {cycle < yStream.length ? yStream[cycle] : 0} (Index {cycle})</span>
+              <span>Remaining: {Math.max(0, maxCycles - cycle)} cycles</span>
             </div>
 
-            {/* PE Structure Drawing */}
-            <div className="flex items-center justify-center relative w-[500px] h-[320px] mt-6">
+            {/* Structured Simulation Layout */}
+            <div className="flex flex-col items-center w-full max-w-3xl mt-8 relative gap-4">
               
-              {/* Top Y Input Arrow & Bubble */}
-              <div className="absolute top-0 left-1/2 -translate-x-1/2 flex flex-col items-center">
-                <span className="text-xs font-bold text-green-600 dark:text-green-400 font-mono">
-                  Y_in = {currentYIn}
-                </span>
-                <ArrowDown className="w-5 h-5 text-green-500 animate-bounce" />
+              {/* Row 1: Top Y Input Queue */}
+              <div className="flex flex-col items-center h-48 justify-end">
+                <span className="text-[10px] font-bold text-zinc-400 uppercase tracking-widest mb-2 font-sans">Y Input Stream</span>
+                <div className="flex flex-col gap-2 items-center">
+                  {Array.from({ length: 4 })
+                    .map((_, idx) => idx)
+                    .reverse()
+                    .map(j => {
+                      const k = cycle + j;
+                      if (k >= yStream.length) return null;
+                      return (
+                        <div
+                          key={`y-q-${k}`}
+                          className={`w-9 h-9 rounded-lg shadow-sm flex items-center justify-center text-xs font-bold border transform transition-all duration-300 ${
+                            Y_COLORS[k % Y_COLORS.length]
+                          }`}
+                        >
+                          {yStream[k]}
+                        </div>
+                      );
+                    })}
+                </div>
+                <ArrowDown className="w-5 h-5 text-zinc-300 dark:text-zinc-700 mt-2 animate-bounce" />
               </div>
 
-              {/* Left X Input Arrow & Bubble */}
-              <div className="absolute left-0 top-[35%] -translate-y-1/2 flex items-center gap-2">
-                <span className="text-xs font-bold text-blue-600 dark:text-blue-400 font-mono">
-                  X_in = {currentXIn}
-                </span>
-                <ArrowRight className="w-5 h-5 text-blue-500 animate-pulse" />
-              </div>
-
-              {/* Main Processing Element Boundary Box */}
-              <div className="absolute top-[20%] bottom-[10%] left-[25%] right-[25%] bg-white dark:bg-zinc-900 border-2 border-zinc-300 dark:border-zinc-700 rounded-2xl shadow-md p-6 flex flex-col justify-between">
+              {/* Row 2: Left X Queue | Center PE | Right X Register Out */}
+              <div className="flex items-center justify-center w-full gap-4">
                 
-                {/* Header Label inside box */}
-                <div className="flex justify-between items-center pb-2 border-b border-zinc-100 dark:border-zinc-800">
-                  <span className="text-xs font-bold uppercase tracking-wider text-zinc-400">Processing Element (PE)</span>
-                  <span className="text-[10px] bg-zinc-100 dark:bg-zinc-800 px-2 py-0.5 rounded text-zinc-500">MAC Unit</span>
+                {/* Left X Input Queue */}
+                <div className="flex items-center justify-end w-64 pr-2">
+                  <div className="flex flex-col items-end mr-4">
+                    <span className="text-[10px] font-bold text-zinc-400 uppercase tracking-widest mb-1.5 font-sans">X Input Stream</span>
+                    <div className="flex gap-2 items-center">
+                      {Array.from({ length: 4 })
+                        .map((_, idx) => idx)
+                        .reverse()
+                        .map(j => {
+                          const k = cycle + j;
+                          if (k >= xStream.length) return null;
+                          return (
+                            <div
+                              key={`x-q-${k}`}
+                              className={`w-9 h-9 rounded-lg shadow-sm flex items-center justify-center text-xs font-bold border transform transition-all duration-300 ${
+                                X_COLORS[k % X_COLORS.length]
+                              }`}
+                            >
+                              {xStream[k]}
+                            </div>
+                          );
+                        })}
+                    </div>
+                  </div>
+                  <ArrowRight className="w-5 h-5 text-zinc-300 dark:text-zinc-700 animate-pulse shrink-0" />
                 </div>
 
-                {/* Internal Logic Diagrams */}
-                <div className="flex-1 grid grid-cols-2 gap-4 items-center py-4 relative">
+                {/* Center: The Processing Element Boundary Box */}
+                <div className="w-[320px] h-[240px] bg-white dark:bg-zinc-900 border-2 border-zinc-200 dark:border-zinc-800 rounded-2xl shadow-md p-5 flex flex-col justify-between relative z-10">
                   
-                  {/* Left Column: Register W & Multiplier */}
-                  <div className="flex flex-col items-center gap-4 relative">
-                    {/* Weight Register Box */}
-                    <div className="bg-amber-50 dark:bg-amber-950/20 border border-amber-300 dark:border-amber-800/80 rounded-lg p-2 w-20 text-center shadow-sm">
-                      <span className="text-[9px] text-amber-500 uppercase font-bold block">Reg W</span>
-                      <span className="font-mono text-sm font-semibold text-amber-700 dark:text-amber-400">
-                        {parsedWeight.toFixed(1)}
+                  {/* Header Label inside box */}
+                  <div className="flex justify-between items-center pb-2 border-b border-zinc-100 dark:border-zinc-800">
+                    <span className="text-[10px] font-bold uppercase tracking-wider text-zinc-400 font-sans">Processing Element</span>
+                    <span className="text-[9px] bg-zinc-100 dark:bg-zinc-800 px-2 py-0.5 rounded text-zinc-500 font-bold font-sans">MAC Unit</span>
+                  </div>
+
+                  {/* Internal Logic Diagrams */}
+                  <div className="flex-1 grid grid-cols-2 gap-4 items-center py-2 relative">
+                    
+                    {/* Left Column: Register W & Multiplier */}
+                    <div className="flex flex-col items-center gap-3 relative">
+                      {/* Weight Register Box */}
+                      <div className="bg-amber-50 dark:bg-amber-950/20 border border-amber-300 dark:border-amber-800/80 rounded-lg p-1.5 w-20 text-center shadow-sm">
+                        <span className="text-[8px] text-amber-500 uppercase font-bold block font-sans">Reg W</span>
+                        <span className="font-mono text-xs font-bold text-amber-700 dark:text-amber-400">
+                          {parsedWeight.toFixed(1)}
+                        </span>
+                      </div>
+
+                      {/* Multiplier Symbol */}
+                      <div className="bg-blue-50 dark:bg-blue-950/40 border-2 border-blue-200 dark:border-blue-900 rounded-full w-8 h-8 flex items-center justify-center text-xs font-bold text-blue-600 dark:text-blue-400 font-mono">
+                        ×
+                      </div>
+                    </div>
+
+                    {/* Right Column: Adder */}
+                    <div className="flex flex-col items-center justify-center gap-2 relative">
+                      {/* Adder Symbol */}
+                      <div className="bg-green-50 dark:bg-green-950/40 border-2 border-green-200 dark:border-green-900 rounded-full w-8 h-8 flex items-center justify-center text-xs font-bold text-green-600 dark:text-green-400 font-mono">
+                        +
+                      </div>
+                      
+                      {/* Live combinational calculation display */}
+                      <div className="text-[9px] text-green-600 dark:text-green-400 font-mono border border-dashed border-green-200 dark:border-green-900/50 p-1 rounded bg-zinc-50 dark:bg-zinc-950">
+                        ({currentXIn} × {parsedWeight}) + {currentYIn} = {(currentXIn * parsedWeight + currentYIn).toFixed(1)}
+                      </div>
+                    </div>
+
+                    {/* Connector lines (dashed) */}
+                    <div className="absolute left-[25%] right-[25%] top-[60%] border-t border-zinc-200 dark:border-zinc-800 border-dashed z-0" />
+                  </div>
+
+                  {/* Registered Outputs (At Clock registers) */}
+                  <div className="border-t border-zinc-100 dark:border-zinc-800 pt-3 flex justify-between gap-3">
+                    
+                    {/* Reg X Out */}
+                    <div className="flex-1 bg-zinc-50 dark:bg-zinc-950 rounded-lg px-2 py-1 border flex justify-between items-center text-[10px] font-mono">
+                      <span className="text-zinc-400 font-sans">Reg_X:</span>
+                      <span className="font-bold text-blue-600 dark:text-blue-400">
+                        {peState.regXOut.toFixed(1)}
                       </span>
                     </div>
 
-                    {/* Multiplier Icon/Symbol */}
-                    <div className="bg-blue-50 dark:bg-blue-950/40 border-2 border-blue-200 dark:border-blue-900 rounded-full w-8 h-8 flex items-center justify-center text-xs font-bold text-blue-600 dark:text-blue-400 font-mono">
-                      ×
+                    {/* Reg Y Out */}
+                    <div className="flex-1 bg-zinc-50 dark:bg-zinc-950 rounded-lg px-2 py-1 border flex justify-between items-center text-[10px] font-mono">
+                      <span className="text-zinc-400 font-sans">Reg_Y:</span>
+                      <span className="font-bold text-green-600 dark:text-green-400">
+                        {peState.regYOut.toFixed(1)}
+                      </span>
                     </div>
-                    {/* Floating internal signal path X_in -> multiplier */}
-                    <div className="text-[10px] text-zinc-400 font-mono absolute -left-4 top-[65%]">
-                      {currentXIn}
-                    </div>
+
                   </div>
 
-                  {/* Right Column: Adder & Register Accumulator */}
-                  <div className="flex flex-col items-center gap-4 relative">
-                    {/* Adder Symbol */}
-                    <div className="bg-green-50 dark:bg-green-950/40 border-2 border-green-200 dark:border-green-900 rounded-full w-8 h-8 flex items-center justify-center text-xs font-bold text-green-600 dark:text-green-400 font-mono">
-                      +
-                    </div>
-
-                    {/* Temporary Accumulator Bubble */}
-                    <div className="text-[10px] text-green-600 dark:text-green-400 font-mono border border-dashed border-green-200 p-1 rounded">
-                      MAC: { (currentXIn * parsedWeight + currentYIn).toFixed(1) }
-                    </div>
-                  </div>
-
-                  {/* Connector lines (abstracted) */}
-                  <div className="absolute left-[30%] right-[30%] top-[65%] border-t border-zinc-300 dark:border-zinc-700 border-dashed z-0" />
                 </div>
 
-                {/* Registered Outputs (Represent Clock registers) */}
-                <div className="border-t border-zinc-100 dark:border-zinc-800 pt-3 flex justify-between gap-4">
-                  {/* Reg X Out (Horizontal Output Buffer) */}
-                  <div className="flex-1 bg-zinc-50 dark:bg-zinc-950 rounded-lg px-2 py-1.5 border flex justify-between items-center text-[11px] font-mono">
-                    <span className="text-zinc-400">Reg_X:</span>
-                    <span className="font-bold text-blue-600 dark:text-blue-400">
-                      {peState.regXOut.toFixed(1)}
-                    </span>
-                  </div>
-
-                  {/* Reg Y Out (Vertical Accumulator Buffer) */}
-                  <div className="flex-1 bg-zinc-50 dark:bg-zinc-950 rounded-lg px-2 py-1.5 border flex justify-between items-center text-[11px] font-mono">
-                    <span className="text-zinc-400">Reg_Y:</span>
-                    <span className="font-bold text-green-600 dark:text-green-400">
-                      {peState.regYOut.toFixed(1)}
-                    </span>
+                {/* Right X Output Visualizer */}
+                <div className="flex items-center w-64 pl-2 gap-2">
+                  <ArrowRight className="w-5 h-5 text-zinc-300 dark:text-zinc-700 shrink-0" />
+                  <div className="flex flex-col items-start">
+                    <span className="text-[10px] font-bold text-zinc-400 uppercase tracking-widest mb-1.5 font-sans">Reg_X Output</span>
+                    {cycle > 0 ? (
+                      <div
+                        className={`w-9 h-9 rounded-lg shadow-sm flex items-center justify-center text-xs font-bold border transition-all duration-300 ${
+                          X_COLORS[(cycle - 1) % X_COLORS.length]
+                        }`}
+                      >
+                        {peState.regXOut}
+                      </div>
+                    ) : (
+                      <div className="w-9 h-9 rounded-lg border border-dashed border-zinc-200 dark:border-zinc-800 flex items-center justify-center text-zinc-300 dark:text-zinc-700 text-xs font-bold font-mono">
+                        -
+                      </div>
+                    )}
                   </div>
                 </div>
 
               </div>
 
-              {/* Right X Output Arrow & Bubble */}
-              <div className="absolute right-0 top-[35%] -translate-y-1/2 flex items-center gap-2">
-                <ArrowRight className="w-5 h-5 text-blue-500 animate-pulse" />
-                <span className="text-xs font-bold text-blue-600 dark:text-blue-400 font-mono">
-                  Reg_X_out = {peState.regXOut}
-                </span>
-              </div>
-
-              {/* Bottom Y Output Arrow & Bubble */}
-              <div className="absolute bottom-0 left-1/2 -translate-x-1/2 flex flex-col items-center">
-                <ArrowDown className="w-5 h-5 text-green-500" />
-                <span className="text-xs font-bold text-green-600 dark:text-green-400 font-mono">
-                  Reg_Y_out = {peState.regYOut}
-                </span>
+              {/* Row 3: Bottom Y Output Visualizer */}
+              <div className="flex flex-col items-center h-28 mt-2">
+                <ArrowDown className="w-5 h-5 text-zinc-300 dark:text-zinc-700 mb-2" />
+                <span className="text-[10px] font-bold text-zinc-400 uppercase tracking-widest mb-1.5 font-sans">Reg_Y Output</span>
+                {cycle > 0 ? (
+                  <div
+                    className="w-12 h-12 rounded-xl shadow-md flex flex-col items-center justify-center border bg-green-500 text-white dark:bg-green-600 border-green-400 text-xs font-bold"
+                  >
+                    <span className="text-[8px] opacity-75 font-mono uppercase font-bold">Accum</span>
+                    <span>{peState.regYOut}</span>
+                  </div>
+                ) : (
+                  <div className="w-12 h-12 rounded-xl border border-dashed border-zinc-200 dark:border-zinc-800 flex items-center justify-center text-zinc-300 dark:text-zinc-700 text-xs font-bold font-mono">
+                    -
+                  </div>
+                )}
               </div>
 
             </div>
