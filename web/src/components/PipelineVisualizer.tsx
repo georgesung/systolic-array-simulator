@@ -62,7 +62,7 @@ export function PipelineVisualizer({ n, m, cycle, peStates, activeVectors, vecto
                    
                    let cellColor = 'bg-zinc-100 text-zinc-400 dark:bg-zinc-800 dark:text-zinc-500 border-zinc-200 dark:border-zinc-700';
                    let val = 0;
-                   let isVisible = true;
+                   const isVisible = true;
 
                    if (isVector) {
                      cellColor = getVectorColor(vIdx);

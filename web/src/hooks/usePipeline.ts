@@ -1,4 +1,4 @@
-import { useEffect, useState, useCallback, useMemo } from 'react';
+import { useEffect, useState, useCallback, useRef } from 'react';
 import init, { DotProductSim } from 'rust-hw-playground';
 
 export interface PEState {
@@ -8,14 +8,24 @@ export interface PEState {
 }
 
 export function usePipeline(n: number, m: number, weights: number[], vectors: number[][]) {
-  const [sim, setSim] = useState<DotProductSim | null>(null);
-  const [peStates, setPeStates] = useState<PEState[]>([]);
+  const simRef = useRef<DotProductSim | null>(null);
+  const [peStates, setPeStates] = useState<PEState[]>(() =>
+    Array(n).fill(null).map((_, i) => ({
+      weight: weights[i] || 0,
+      xOut: 0,
+      yOut: 0,
+    }))
+  );
   const [cycle, setCycle] = useState(0);
   const [isLoaded, setIsLoaded] = useState(false);
   const [history, setHistory] = useState<{cycle: number, states: PEState[], output: number}[]>([]);
-  const [activeVectors, setActiveVectors] = useState<(number | null)[]>([]);
+  const [activeVectors, setActiveVectors] = useState<(number | null)[]>(() => Array(n).fill(null));
 
-  // Initialize WASM and Sim
+  // Track previous n and weights to detect changes synchronously and reset React states
+  const [prevN, setPrevN] = useState(n);
+  const [prevWeights, setPrevWeights] = useState(weights);
+
+  // Initialize WASM
   useEffect(() => {
     async function setup() {
       try {
@@ -28,36 +38,72 @@ export function usePipeline(n: number, m: number, weights: number[], vectors: nu
     setup();
   }, []);
 
-  const reset = useCallback(() => {
+  // Synchronous state adjustments during render when props change
+  if (n !== prevN || weights !== prevWeights) {
+    setPrevN(n);
+    setPrevWeights(weights);
+    setCycle(0);
+    setHistory([]);
+    setActiveVectors(Array(n).fill(null));
+    
+    // We can initialize peStates synchronously during render without calling WASM,
+    // since all PE registers are initially 0.0 and weights are loaded from props.
+    setPeStates(
+      Array(n).fill(null).map((_, i) => ({
+        weight: weights[i] || 0,
+        xOut: 0,
+        yOut: 0,
+      }))
+    );
+  }
+
+  // Effect to manage WASM life-cycle (creating/updating the simulator)
+  useEffect(() => {
     if (!isLoaded) return;
+
+    // JavaScript's FinalizationRegistry automatically handles freeing of the old 
+    // WASM instance when it is dereferenced.
     const newSim = new DotProductSim(n);
     const weightsF32 = new Float32Array(weights.length === n ? weights : Array(n).fill(0));
     newSim.load_weights(weightsF32);
-    setSim(newSim);
+    simRef.current = newSim;
+  }, [n, weights, isLoaded]);
+
+  // Clean up when unmounting
+  useEffect(() => {
+    return () => {
+      if (simRef.current) {
+        simRef.current.free();
+        simRef.current = null;
+      }
+    };
+  }, []);
+
+  // Manual reset handler (called from button)
+  const reset = useCallback(() => {
+    if (!isLoaded) return;
+
+    const newSim = new DotProductSim(n);
+    const weightsF32 = new Float32Array(weights.length === n ? weights : Array(n).fill(0));
+    newSim.load_weights(weightsF32);
+    simRef.current = newSim;
+    
     setCycle(0);
     setHistory([]);
     
-    // Initial PE states
-    const rawState = newSim.get_state();
-    const initialPeStates: PEState[] = [];
-    for (let i = 0; i < n; i++) {
-      initialPeStates.push({
-        weight: rawState[i * 3],
-        xOut: rawState[i * 3 + 1],
-        yOut: rawState[i * 3 + 2],
-      });
-    }
-    setPeStates(initialPeStates);
+    setPeStates(
+      Array(n).fill(null).map((_, i) => ({
+        weight: weights[i] || 0,
+        xOut: 0,
+        yOut: 0,
+      }))
+    );
     setActiveVectors(Array(n).fill(null));
   }, [n, weights, isLoaded]);
 
-  // Reset when n or weights change
-  useEffect(() => {
-    reset();
-  }, [reset]);
-
   const tick = useCallback(() => {
-    if (!sim) return;
+    const sim = simRef.current;
+    if (!sim || !sim.__wbg_ptr) return; // Guard against null and freed/nullified internal pointers
 
     const nextCycle = cycle + 1;
     const currentXIns = new Float32Array(n);
@@ -66,7 +112,7 @@ export function usePipeline(n: number, m: number, weights: number[], vectors: nu
     for (let i = 0; i < n; i++) {
       const vIdx = nextCycle - i - 1;
       if (vIdx >= 0 && vIdx < m) {
-        currentXIns[i] = vectors[vIdx][i];
+        currentXIns[i] = vectors[vIdx] ? vectors[vIdx][i] : 0;
         activeVectorIndices[i] = vIdx;
       } else {
         currentXIns[i] = 0;
@@ -90,7 +136,7 @@ export function usePipeline(n: number, m: number, weights: number[], vectors: nu
     setHistory(prev => [...prev, { cycle: nextCycle, states: newPeStates, output }]);
 
     return { output, activeVectorIndices };
-  }, [sim, cycle, n, m, vectors]);
+  }, [cycle, n, m, vectors]);
 
   const isComplete = cycle >= m + n;
 

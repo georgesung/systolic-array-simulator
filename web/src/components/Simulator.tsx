@@ -17,6 +17,52 @@ export function Simulator() {
   const [vectorsStr, setVectorsStr] = useState("4, -3, -9\n-8, 5, 9\n-7, -7, -8\n1, -7, 0");
   const [isAutoPlaying, setIsAutoPlaying] = useState(false);
 
+  // Helper functions for auto-adjusting weights and vectors
+  const adjustWeightsForN = (currentWeightsStr: string, newN: number) => {
+    let w = currentWeightsStr.split(',').map(v => v.trim()).filter(v => v !== '');
+    if (w.length < newN) {
+      w = [...w, ...Array(newN - w.length).fill('0')];
+    } else if (w.length > newN) {
+      w = w.slice(0, newN);
+    }
+    return w.join(', ');
+  };
+
+  const adjustVectorsForNAndM = (currentVectorsStr: string, newN: number, newM: number) => {
+    let vLines = currentVectorsStr.split('\n').filter(line => line.trim() !== '');
+    
+    // Update m (number of lines)
+    if (vLines.length < newM) {
+      vLines = [...vLines, ...Array(newM - vLines.length).fill('')];
+    } else if (vLines.length > newM) {
+      vLines = vLines.slice(0, newM);
+    }
+    
+    // Update n (length of each line)
+    vLines = vLines.map(line => {
+      let v = line === '' ? [] : line.split(',').map(val => val.trim());
+      if (v.length < newN) {
+        v = [...v, ...Array(newN - v.length).fill('0')];
+      } else if (v.length > newN) {
+        v = v.slice(0, newN);
+      }
+      return v.join(', ');
+    });
+    
+    return vLines.join('\n');
+  };
+
+  const handleNChange = (newN: number) => {
+    setN(newN);
+    setWeightsStr(prev => adjustWeightsForN(prev, newN));
+    setVectorsStr(prev => adjustVectorsForNAndM(prev, newN, m));
+  };
+
+  const handleMChange = (newM: number) => {
+    setM(newM);
+    setVectorsStr(prev => adjustVectorsForNAndM(prev, n, newM));
+  };
+
   const handleRandomizeWeights = () => {
     const newWeights = Array.from({ length: n }, () => Math.floor(Math.random() * 21) - 10);
     setWeightsStr(newWeights.join(', '));
@@ -41,50 +87,7 @@ export function Simulator() {
     [vectorsStr]
   );
 
-  const expectedValues = useMemo(() => {
-    return vectors.map(vec => 
-      vec.reduce((sum, val, idx) => sum + val * (weights[idx] || 0), 0)
-    );
-  }, [vectors, weights]);
-
-  const { peStates, cycle, tick, reset, isLoaded, isComplete, history, activeVectors } = usePipeline(n, m, weights, vectors);
-
-  // Auto-adjust weights and vectors strings when n or m changes
-  useEffect(() => {
-    setWeightsStr(prev => {
-      let w = prev.split(',').map(v => v.trim()).filter(v => v !== '');
-      if (w.length < n) {
-        w = [...w, ...Array(n - w.length).fill('0')];
-      } else if (w.length > n) {
-        w = w.slice(0, n);
-      }
-      return w.join(', ');
-    });
-
-    setVectorsStr(prev => {
-      let vLines = prev.split('\n').filter(line => line.trim() !== '');
-      
-      // Update m (number of lines)
-      if (vLines.length < m) {
-        vLines = [...vLines, ...Array(m - vLines.length).fill('')];
-      } else if (vLines.length > m) {
-        vLines = vLines.slice(0, m);
-      }
-      
-      // Update n (length of each line)
-      vLines = vLines.map(line => {
-        let v = line === '' ? [] : line.split(',').map(val => val.trim());
-        if (v.length < n) {
-          v = [...v, ...Array(n - v.length).fill('0')];
-        } else if (v.length > n) {
-          v = v.slice(0, n);
-        }
-        return v.join(', ');
-      });
-      
-      return vLines.join('\n');
-    });
-  }, [n, m]);
+  const { peStates, cycle, tick, reset, isLoaded, isComplete, activeVectors } = usePipeline(n, m, weights, vectors);
 
   // Auto-Play Effect
   useEffect(() => {
@@ -94,7 +97,11 @@ export function Simulator() {
         tick();
       }, 1000); // 1 second per cycle
     } else if (isComplete && isAutoPlaying) {
-      setIsAutoPlaying(false);
+      // Defer state update to avoid calling setState synchronously within the effect body
+      const handle = requestAnimationFrame(() => {
+        setIsAutoPlaying(false);
+      });
+      return () => cancelAnimationFrame(handle);
     }
     return () => clearInterval(intervalId);
   }, [isAutoPlaying, isComplete, tick]);
@@ -124,7 +131,7 @@ export function Simulator() {
                 <Input 
                   type="number" 
                   value={n} 
-                  onChange={e => setN(Math.max(1, parseInt(e.target.value) || 1))} 
+                  onChange={e => handleNChange(Math.max(1, parseInt(e.target.value) || 1))} 
                 />
               </div>
               <div className="flex-1 space-y-2">
@@ -132,7 +139,7 @@ export function Simulator() {
                 <Input 
                   type="number" 
                   value={m} 
-                  onChange={e => setM(Math.max(1, parseInt(e.target.value) || 1))} 
+                  onChange={e => handleMChange(Math.max(1, parseInt(e.target.value) || 1))} 
                 />
               </div>
             </div>
@@ -243,44 +250,6 @@ export function Simulator() {
                 )}
               </TableBody>
             </Table>
-          </div>
-        </CardContent>
-      </Card>
-
-      {/* Results History */}
-      <Card className="border-none shadow-lg bg-zinc-900 dark:bg-zinc-900 text-white">
-        <CardHeader>
-          <div className="flex items-center gap-2">
-            <CardTitle className="text-white">Results Log</CardTitle>
-            {isComplete && <span className="text-[10px] bg-green-500 text-white px-2 py-0.5 rounded-full uppercase font-bold tracking-tighter">Completed</span>}
-          </div>
-        </CardHeader>
-        <CardContent>
-          <div className="space-y-1 max-h-60 overflow-y-auto font-mono text-sm pr-2 scrollbar-thin scrollbar-thumb-zinc-700">
-            {[...history].reverse().map((h) => {
-              const finishedV = h.cycle - n - 1;
-              const vectorCompleted = finishedV >= 0 && finishedV < m;
-              const expectedVal = vectorCompleted ? expectedValues[finishedV] : 0;
-              
-              return (
-                <div key={h.cycle} className={`flex justify-between items-center p-2 rounded-md transition-colors ${vectorCompleted ? 'bg-zinc-800' : 'hover:bg-zinc-800/50'}`}>
-                  <span className="text-zinc-400">Cycle {h.cycle.toString().padStart(2, '0')}:</span>
-                  {vectorCompleted ? (
-                    <div className="flex flex-col sm:flex-row sm:items-center gap-2 sm:gap-6 text-right">
-                      <span className="text-xs text-zinc-400">
-                        Expected (TS): <span className="font-mono text-blue-400 font-semibold">{expectedVal.toFixed(2)}</span>
-                      </span>
-                      <span className="text-green-400 font-bold">
-                        [Vector {finishedV}] Simulated = {h.output.toFixed(2)}
-                      </span>
-                    </div>
-                  ) : (
-                    <span className="text-zinc-500 italic">Data propagating...</span>
-                  )}
-                </div>
-              );
-            })}
-            {history.length === 0 && <div className="text-zinc-500 italic text-center py-8">No cycles executed yet.</div>}
           </div>
         </CardContent>
       </Card>
