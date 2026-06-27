@@ -368,8 +368,6 @@ export function PESimulator() {
                       </div>
                     </div>
 
-                    {/* Connector lines (dashed) */}
-                    <div className="absolute left-[25%] right-[25%] top-[60%] border-t border-zinc-200 dark:border-zinc-800 border-dashed z-0" />
                   </div>
 
                 </div>
