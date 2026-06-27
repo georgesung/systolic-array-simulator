@@ -18,7 +18,7 @@ export default function Home() {
       case 'pe':
         return {
           title: 'Processing Element (PE)',
-          subtitle: 'The fundamental unit of systolic computation. Learn how multiplier-accumulator (MAC) units work cycle-by-cycle.',
+          subtitle: 'The fundamental unit of systolic arrays, the Processing Element (PE). See how multiplier-accumulator (MAC) units work cycle-by-cycle.',
         };
       case 'dot-product':
         return {
