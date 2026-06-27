@@ -12,9 +12,9 @@ import { Play, Pause, StepForward, RotateCcw, Dices } from 'lucide-react';
 
 export function Simulator() {
   const [n, setN] = useState(3);
-  const [m, setM] = useState(2);
-  const [weightsStr, setWeightsStr] = useState("1, 2, 3");
-  const [vectorsStr, setVectorsStr] = useState("10, 20, 30\n5, 10, 15");
+  const [m, setM] = useState(4);
+  const [weightsStr, setWeightsStr] = useState("2, -1, 3");
+  const [vectorsStr, setVectorsStr] = useState("4, -3, -9\n-8, 5, 9\n-7, -7, -8\n1, -7, 0");
   const [isAutoPlaying, setIsAutoPlaying] = useState(false);
 
   const handleRandomizeWeights = () => {
