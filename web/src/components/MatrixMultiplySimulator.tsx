@@ -188,9 +188,9 @@ export function MatrixMultiplySimulator() {
                 <Input
                   type="number"
                   min={2}
-                  max={4}
+                  max={8}
                   value={size}
-                  onChange={e => handleSizeChange(Math.max(2, Math.min(4, parseInt(e.target.value) || 2)))}
+                  onChange={e => handleSizeChange(Math.max(2, Math.min(8, parseInt(e.target.value) || 2)))}
                   className="font-mono text-sm w-24"
                 />
                 <span className="text-xs text-zinc-500">
