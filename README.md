@@ -2,7 +2,7 @@
 
 A collection of educational hardware simulation models exploring pipelined computation, processing elements, and systolic arrays.
 
-📖 **Read the full theory and architectural documentation here:**  
+📖 **Read the full theory and architectural documentation here:**
 [https://georgesung.github.io/rust-hw-sandbox-2026/](https://georgesung.github.io/rust-hw-sandbox-2026/)
 
 ---
@@ -90,12 +90,21 @@ The Next.js frontend integrates the compiled WASM package as a local module:
 
 Once the WASM is compiled, you can run the web dashboard:
 
+Dev
 ```bash
 cd web
 npm install
 npm run dev -- --webpack
 ```
 Then open [http://localhost:3000](http://localhost:3000) in your browser.
+
+Prod
+```bash
+cd web
+npm install
+npx next build --webpack
+npx serve out
+```
 
 ---
 *Built with ❤️ for hardware enthusiasts and students.*
