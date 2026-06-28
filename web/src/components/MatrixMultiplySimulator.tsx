@@ -7,6 +7,10 @@ import { Input } from '@/components/ui/input';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Play, Pause, StepForward, RotateCcw, Dices, GraduationCap, ArrowRight, ArrowDown } from 'lucide-react';
 
+const formatFloat = (num: number): number => {
+  return Math.round(num * 100) / 100;
+};
+
 export function MatrixMultiplySimulator() {
   const [size, setSize] = useState(3);
   const m = size;
@@ -417,7 +421,7 @@ export function MatrixMultiplySimulator() {
                                 : 'bg-zinc-100 dark:bg-zinc-900 text-zinc-400 border-zinc-200 dark:border-zinc-800'
                             }`}
                           >
-                            {val}
+                            {formatFloat(val)}
                           </div>
                         );
                       })}
@@ -443,13 +447,13 @@ export function MatrixMultiplySimulator() {
                         <span className="absolute top-1 right-2 text-[8px] font-bold text-zinc-400">PE({r},{c})</span>
                         
                         <div className="text-center space-y-1 select-none">
-                          <p className="text-xs font-bold text-indigo-600 dark:text-indigo-400">w: {state.weight}</p>
+                          <p className="text-xs font-bold text-indigo-600 dark:text-indigo-400">w: {formatFloat(state.weight)}</p>
                           <div className="flex flex-col gap-0.5 justify-center text-[10px] font-mono text-zinc-500 dark:text-zinc-400 border-t border-dashed border-zinc-100 dark:border-zinc-900 pt-1 mt-1">
                             <span className={isInitialized && state.xOut !== 0 ? "font-bold text-emerald-600 dark:text-emerald-400" : "text-zinc-400 dark:text-zinc-600"}>
-                              x_out: {isInitialized ? state.xOut : 0}
+                              x_out: {isInitialized ? formatFloat(state.xOut) : 0}
                             </span>
                             <span className={isInitialized && state.yOut !== 0 ? "font-bold text-blue-600 dark:text-blue-400" : "text-zinc-400 dark:text-zinc-600"}>
-                              y_out: {isInitialized ? state.yOut : 0}
+                              y_out: {isInitialized ? formatFloat(state.yOut) : 0}
                             </span>
                           </div>
                         </div>
@@ -491,7 +495,7 @@ export function MatrixMultiplySimulator() {
                                 : 'bg-zinc-100 dark:bg-zinc-900 text-zinc-500 border-zinc-200 dark:border-zinc-800'
                             }`}
                           >
-                            {val}
+                            {formatFloat(val)}
                           </div>
                         );
                       })}
@@ -540,7 +544,7 @@ export function MatrixMultiplySimulator() {
                       key={`expected-${rIdx}-${cIdx}`}
                       className="w-12 h-10 flex items-center justify-center font-mono text-sm border border-zinc-100 dark:border-zinc-900 rounded-md bg-zinc-50/50 dark:bg-zinc-900/30 text-zinc-800 dark:text-zinc-200"
                     >
-                      {val}
+                      {formatFloat(val)}
                     </div>
                   ))
                 )}
@@ -575,7 +579,7 @@ export function MatrixMultiplySimulator() {
                           : 'bg-zinc-100 dark:bg-zinc-900 text-zinc-800 dark:text-zinc-200 border-zinc-200 dark:border-zinc-800'
                       }`}
                     >
-                      {val === null ? '-' : val}
+                      {val === null ? '-' : formatFloat(val)}
                     </div>
                   ))
                 )}
