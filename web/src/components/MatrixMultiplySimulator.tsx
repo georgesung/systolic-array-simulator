@@ -148,8 +148,8 @@ export function MatrixMultiplySimulator() {
     }
     // Slice starting from the current cycle index to see what's left
     const remaining = stream.slice(cycle);
-    // Take the next 3 elements for UI visualization
-    const visible = remaining.slice(0, 3);
+    // Take the next elements matching the matrix dimension N for UI visualization
+    const visible = remaining.slice(0, size);
     // Reverse so the element entering first (index 0) is on the right side
     return visible.reverse();
   };
@@ -374,7 +374,7 @@ export function MatrixMultiplySimulator() {
             <div
               className="grid gap-x-14 gap-y-10 relative p-8 bg-zinc-50 dark:bg-zinc-900/40 rounded-2xl border border-dashed border-zinc-200 dark:border-zinc-800 min-w-[650px]"
               style={{
-                gridTemplateColumns: `140px repeat(${n}, minmax(110px, 1fr))`,
+                gridTemplateColumns: `${40 + size * 34}px repeat(${n}, minmax(110px, 1fr))`,
               }}
             >
               {/* TOP ROW: B Column Headers */}
@@ -459,15 +459,15 @@ export function MatrixMultiplySimulator() {
               ))}
 
               {/* BOTTOM ROW: bottom output queue for each column */}
-              <div key="bottom-spacer" className="h-28"></div>
+              <div key="bottom-spacer" className="min-h-28"></div>
               {Array.from({ length: n }).map((_, c) => {
                 const exitedVals = getExitedForCol(c);
 
                 return (
-                  <div key={`col-out-${c}`} className="flex flex-col items-center h-28">
+                  <div key={`col-out-${c}`} className="flex flex-col items-center min-h-28">
                     <ArrowDown className="w-4 h-4 text-blue-500 mb-1 shrink-0" />
                     <div className="flex flex-col items-center gap-1 w-full font-mono">
-                      {exitedVals.slice(0, 2).map((val, idx) => {
+                      {exitedVals.slice(0, size).map((val, idx) => {
                         const isJustExited = idx === 0; // Top element in list is the most recent
                         return (
                           <div
@@ -482,7 +482,7 @@ export function MatrixMultiplySimulator() {
                           </div>
                         );
                       })}
-                      {exitedVals.length > 2 && (
+                      {exitedVals.length > size && (
                         <span className="text-[8px] text-zinc-400 font-bold leading-none">...</span>
                       )}
                       <span className="text-[9px] text-zinc-400 mt-0.5 font-bold">C<sub>*,{c}</sub></span>
