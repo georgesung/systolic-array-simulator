@@ -56,7 +56,7 @@ export function MatrixMultiplySimulator() {
   const handleRandomizeA = () => {
     setMatrixA(
       Array(m).fill(null).map(() =>
-        Array(k).fill(null).map(() => Math.floor(Math.random() * 9) + 1)
+        Array(k).fill(null).map(() => Math.floor(Math.random() * 21) - 10)
       )
     );
   };
@@ -64,7 +64,7 @@ export function MatrixMultiplySimulator() {
   const handleRandomizeB = () => {
     setMatrixB(
       Array(k).fill(null).map(() =>
-        Array(n).fill(null).map(() => Math.floor(Math.random() * 3))
+        Array(n).fill(null).map(() => Math.floor(Math.random() * 21) - 10)
       )
     );
   };
