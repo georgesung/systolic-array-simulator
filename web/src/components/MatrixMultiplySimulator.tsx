@@ -8,9 +8,10 @@ import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/com
 import { Play, Pause, StepForward, RotateCcw, Dices, GraduationCap, ArrowRight, ArrowDown } from 'lucide-react';
 
 export function MatrixMultiplySimulator() {
-  const [m, setM] = useState(3);
-  const [k, setK] = useState(3);
-  const [n, setN] = useState(3);
+  const [size, setSize] = useState(3);
+  const m = size;
+  const k = size;
+  const n = size;
 
   const [matrixA, setMatrixA] = useState<number[][]>([
     [1, 2, 3],
@@ -25,59 +26,30 @@ export function MatrixMultiplySimulator() {
 
   const [isAutoPlaying, setIsAutoPlaying] = useState(false);
 
-  // Auto-adjust Matrix A size when M or K changes
-  const handleMChange = (newM: number) => {
-    setM(newM);
+  // Auto-adjust Matrix A & B sizes to maintain square N x N shapes
+  const handleSizeChange = (newSize: number) => {
+    setSize(newSize);
+    
+    // adjust Matrix A to newSize x newSize
     setMatrixA(prev => {
-      const next = Array(newM).fill(null).map((_, r) => {
+      return Array(newSize).fill(null).map((_, r) => {
         const row = prev[r] || [];
-        return Array(k).fill(null).map((_, c) => {
+        return Array(newSize).fill(null).map((_, c) => {
           if (row[c] !== undefined) return row[c];
-          return r * k + c + 1;
+          return r * newSize + c + 1;
         });
       });
-      return next;
     });
-  };
 
-  const handleKChange = (newK: number) => {
-    setK(newK);
-    // adjust Matrix A columns
-    setMatrixA(prev => {
-      const next = Array(m).fill(null).map((_, r) => {
-        const row = prev[r] || [];
-        return Array(newK).fill(null).map((_, c) => {
-          if (row[c] !== undefined) return row[c];
-          return r * newK + c + 1;
-        });
-      });
-      return next;
-    });
-    // adjust Matrix B rows
+    // adjust Matrix B to newSize x newSize
     setMatrixB(prev => {
-      const next = Array(newK).fill(null).map((_, r) => {
+      return Array(newSize).fill(null).map((_, r) => {
         const row = prev[r] || [];
-        return Array(n).fill(null).map((_, c) => {
+        return Array(newSize).fill(null).map((_, c) => {
           if (row[c] !== undefined) return row[c];
           return r === c ? 1 : 0;
         });
       });
-      return next;
-    });
-  };
-
-  const handleNChange = (newN: number) => {
-    setN(newN);
-    // adjust Matrix B columns
-    setMatrixB(prev => {
-      const next = Array(k).fill(null).map((_, r) => {
-        const row = prev[r] || [];
-        return Array(newN).fill(null).map((_, c) => {
-          if (row[c] !== undefined) return row[c];
-          return r === c ? 1 : 0;
-        });
-      });
-      return next;
     });
   };
 
@@ -186,8 +158,8 @@ export function MatrixMultiplySimulator() {
   const getExitedForCol = (cIdx: number) => {
     const exited: number[] = [];
     for (let i = 0; i < m; i++) {
-      const val = matrixC[i][cIdx];
-      if (val !== null) {
+      const val = matrixC[i]?.[cIdx];
+      if (val !== undefined && val !== null) {
         exited.push(val);
       }
     }
@@ -209,39 +181,22 @@ export function MatrixMultiplySimulator() {
         </CardHeader>
         <CardContent className="space-y-6">
           {/* Dimension Controls */}
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+          <div className="grid grid-cols-1 gap-4 max-w-md">
             <div className="space-y-2">
-              <label className="text-xs font-bold text-muted-foreground uppercase">Matrix A Rows (M)</label>
-              <Input
-                type="number"
-                min={2}
-                max={4}
-                value={m}
-                onChange={e => handleMChange(Math.max(2, Math.min(4, parseInt(e.target.value) || 2)))}
-                className="font-mono text-sm"
-              />
-            </div>
-            <div className="space-y-2">
-              <label className="text-xs font-bold text-muted-foreground uppercase">Common Dimension (K)</label>
-              <Input
-                type="number"
-                min={2}
-                max={4}
-                value={k}
-                onChange={e => handleKChange(Math.max(2, Math.min(4, parseInt(e.target.value) || 2)))}
-                className="font-mono text-sm"
-              />
-            </div>
-            <div className="space-y-2">
-              <label className="text-xs font-bold text-muted-foreground uppercase">Matrix B Cols (N)</label>
-              <Input
-                type="number"
-                min={2}
-                max={4}
-                value={n}
-                onChange={e => handleNChange(Math.max(2, Math.min(4, parseInt(e.target.value) || 2)))}
-                className="font-mono text-sm"
-              />
+              <label className="text-xs font-bold text-muted-foreground uppercase tracking-wider">Matrix Dimension (N)</label>
+              <div className="flex items-center gap-4">
+                <Input
+                  type="number"
+                  min={2}
+                  max={4}
+                  value={size}
+                  onChange={e => handleSizeChange(Math.max(2, Math.min(4, parseInt(e.target.value) || 2)))}
+                  className="font-mono text-sm w-24"
+                />
+                <span className="text-xs text-zinc-500">
+                  Configures the size of the symmetrical square matrices ({size}×{size}) and the processing grid.
+                </span>
+              </div>
             </div>
           </div>
 
