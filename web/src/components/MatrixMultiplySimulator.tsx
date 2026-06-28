@@ -13,15 +13,15 @@ export function MatrixMultiplySimulator() {
   const k = size;
   const n = size;
 
-  const [matrixA, setMatrixA] = useState<number[][]>([
-    [1, 2, 3],
-    [4, 5, 6],
-    [7, 8, 9]
+  const [matrixA, setMatrixA] = useState<string[][]>([
+    ['1', '2', '3'],
+    ['4', '5', '6'],
+    ['7', '8', '9']
   ]);
-  const [matrixB, setMatrixB] = useState<number[][]>([
-    [1, 0, 0],
-    [0, 1, 0],
-    [0, 0, 1]
+  const [matrixB, setMatrixB] = useState<string[][]>([
+    ['1', '0', '0'],
+    ['0', '1', '0'],
+    ['0', '0', '1']
   ]);
 
   const [isAutoPlaying, setIsAutoPlaying] = useState(false);
@@ -36,7 +36,7 @@ export function MatrixMultiplySimulator() {
         const row = prev[r] || [];
         return Array(newSize).fill(null).map((_, c) => {
           if (row[c] !== undefined) return row[c];
-          return r * newSize + c + 1;
+          return String(r * newSize + c + 1);
         });
       });
     });
@@ -47,7 +47,7 @@ export function MatrixMultiplySimulator() {
         const row = prev[r] || [];
         return Array(newSize).fill(null).map((_, c) => {
           if (row[c] !== undefined) return row[c];
-          return r === c ? 1 : 0;
+          return r === c ? '1' : '0';
         });
       });
     });
@@ -56,7 +56,7 @@ export function MatrixMultiplySimulator() {
   const handleRandomizeA = () => {
     setMatrixA(
       Array(m).fill(null).map(() =>
-        Array(k).fill(null).map(() => Math.floor(Math.random() * 21) - 10)
+        Array(k).fill(null).map(() => String(Math.floor(Math.random() * 21) - 10))
       )
     );
   };
@@ -64,7 +64,7 @@ export function MatrixMultiplySimulator() {
   const handleRandomizeB = () => {
     setMatrixB(
       Array(k).fill(null).map(() =>
-        Array(n).fill(null).map(() => Math.floor(Math.random() * 21) - 10)
+        Array(n).fill(null).map(() => String(Math.floor(Math.random() * 21) - 10))
       )
     );
   };
@@ -75,6 +75,17 @@ export function MatrixMultiplySimulator() {
     handleReset();
   };
 
+  // Convert raw string matrices to float number matrices for calculations and WASM
+  const parsedMatrixA = useMemo(() =>
+    matrixA.map(row => row.map(val => parseFloat(val) || 0)),
+    [matrixA]
+  );
+
+  const parsedMatrixB = useMemo(() =>
+    matrixB.map(row => row.map(val => parseFloat(val) || 0)),
+    [matrixB]
+  );
+
   const {
     peStates,
     cycle,
@@ -84,7 +95,7 @@ export function MatrixMultiplySimulator() {
     isComplete,
     isInitialized,
     matrixC,
-  } = useMatrixMultiply(m, k, n, matrixA, matrixB);
+  } = useMatrixMultiply(m, k, n, parsedMatrixA, parsedMatrixB);
 
   // Auto-Play Effect
   useEffect(() => {
@@ -114,13 +125,13 @@ export function MatrixMultiplySimulator() {
       for (let j = 0; j < n; j++) {
         let sum = 0;
         for (let x = 0; x < k; x++) {
-          sum += (matrixA[i]?.[x] || 0) * (matrixB[x]?.[j] || 0);
+          sum += (parsedMatrixA[i]?.[x] || 0) * (parsedMatrixB[x]?.[j] || 0);
         }
         result[i][j] = sum;
       }
     }
     return result;
-  }, [matrixA, matrixB, m, k, n]);
+  }, [parsedMatrixA, parsedMatrixB, m, k, n]);
 
   // Determine if a cell in Matrix A is currently active/entering the PE array
   const isCellActiveA = (rIdx: number, cIdx: number) => {
@@ -144,7 +155,7 @@ export function MatrixMultiplySimulator() {
     }
     // Append column r of Matrix A (A[*, r])
     for (let i = 0; i < m; i++) {
-      stream.push(matrixA[i]?.[r] || 0);
+      stream.push(parsedMatrixA[i]?.[r] || 0);
     }
     // Slice starting from the current cycle index to see what's left
     const remaining = stream.slice(cycle);
@@ -223,9 +234,10 @@ export function MatrixMultiplySimulator() {
                       <input
                         key={`a-${rIdx}-${cIdx}`}
                         type="number"
+                        step="any"
                         value={val}
                         onChange={e => {
-                          const newVal = parseInt(e.target.value) || 0;
+                          const newVal = e.target.value;
                           setMatrixA(prev =>
                             prev.map((r, ri) =>
                               r.map((c, ci) => (ri === rIdx && ci === cIdx ? newVal : c))
@@ -266,9 +278,10 @@ export function MatrixMultiplySimulator() {
                       <input
                         key={`b-${rIdx}-${cIdx}`}
                         type="number"
+                        step="any"
                         value={val}
                         onChange={e => {
-                          const newVal = parseInt(e.target.value) || 0;
+                          const newVal = e.target.value;
                           setMatrixB(prev =>
                             prev.map((r, ri) =>
                               r.map((c, ci) => (ri === rIdx && ci === cIdx ? newVal : c))
