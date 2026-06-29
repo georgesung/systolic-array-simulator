@@ -463,7 +463,7 @@ export function MatrixMultiplySimulator() {
                         : 'bg-zinc-100 text-zinc-600 border-transparent hover:bg-zinc-200 dark:bg-zinc-800 dark:text-zinc-400'
                     }`}
                   >
-                    Matrix A1 (Teal)
+                    Matrix A1
                   </button>
                   <button
                     onClick={() => setActiveInputTab(1)}
@@ -473,7 +473,7 @@ export function MatrixMultiplySimulator() {
                         : 'bg-zinc-100 text-zinc-600 border-transparent hover:bg-zinc-200 dark:bg-zinc-800 dark:text-zinc-400'
                     }`}
                   >
-                    Matrix A2 (Purple)
+                    Matrix A2
                   </button>
                   {numMatrices === 3 && (
                     <button
@@ -484,7 +484,7 @@ export function MatrixMultiplySimulator() {
                           : 'bg-zinc-100 text-zinc-600 border-transparent hover:bg-zinc-200 dark:bg-zinc-800 dark:text-zinc-400'
                       }`}
                     >
-                      Matrix A3 (Amber)
+                      Matrix A3
                     </button>
                   )}
                 </div>
@@ -807,8 +807,8 @@ export function MatrixMultiplySimulator() {
             <p className="text-sm text-zinc-500 dark:text-zinc-400 leading-relaxed">
               {numMatrices > 1 ? (
                 <span>
-                  <strong>Pipelined Batch Mode:</strong> You are streaming <strong>{numMatrices} distinct input matrices</strong> (colored Teal, Purple, Amber) back-to-back through the array. 
-                  Because the weight matrix is stationary (already loaded into the PEs), we do not need to pause or clear the hardware between multiplies! 
+                  <strong>Pipelined Batch Mode:</strong> You are streaming <strong>{numMatrices} distinct input matrices</strong> (colored Teal, Purple, Amber) back-to-back through the array.
+                  Because the weight matrix is stationary (already loaded into the PEs), we do not need to pause or clear the hardware between multiplies!
                   They flow continuously, achieving maximum PE hardware utilization (up to 100%) and zero idle cycle stalls.
                 </span>
               ) : (
@@ -834,7 +834,7 @@ export function MatrixMultiplySimulator() {
             <div className="flex flex-wrap gap-8 justify-center items-center">
               {/* Matrix 1 */}
               <div className="flex flex-col items-center gap-2">
-                <span className="text-xs font-bold text-teal-600 dark:text-teal-400 uppercase tracking-wider">C1 (Teal)</span>
+                <span className="text-xs font-bold text-teal-600 dark:text-teal-400 uppercase tracking-wider">C1</span>
                 <div className="relative px-5 py-4 border-l-2 border-r-2 border-teal-400 dark:border-teal-600 rounded-lg">
                   <div className="absolute top-0 left-0 w-2.5 h-1 border-t-2 border-teal-400 dark:border-teal-600 rounded-tl-sm"></div>
                   <div className="absolute bottom-0 left-0 w-2.5 h-1 border-b-2 border-teal-400 dark:border-teal-600 rounded-bl-sm"></div>
@@ -859,7 +859,7 @@ export function MatrixMultiplySimulator() {
               {/* Matrix 2 */}
               {numMatrices >= 2 && (
                 <div className="flex flex-col items-center gap-2">
-                  <span className="text-xs font-bold text-purple-600 dark:text-purple-400 uppercase tracking-wider">C2 (Purple)</span>
+                  <span className="text-xs font-bold text-purple-600 dark:text-purple-400 uppercase tracking-wider">C2</span>
                   <div className="relative px-5 py-4 border-l-2 border-r-2 border-purple-400 dark:border-purple-600 rounded-lg">
                     <div className="absolute top-0 left-0 w-2.5 h-1 border-t-2 border-purple-400 dark:border-purple-600 rounded-tl-sm"></div>
                     <div className="absolute bottom-0 left-0 w-2.5 h-1 border-b-2 border-purple-400 dark:border-purple-600 rounded-bl-sm"></div>
@@ -885,7 +885,7 @@ export function MatrixMultiplySimulator() {
               {/* Matrix 3 */}
               {numMatrices === 3 && (
                 <div className="flex flex-col items-center gap-2">
-                  <span className="text-xs font-bold text-amber-600 dark:text-amber-400 uppercase tracking-wider">C3 (Amber)</span>
+                  <span className="text-xs font-bold text-amber-600 dark:text-amber-400 uppercase tracking-wider">C3</span>
                   <div className="relative px-5 py-4 border-l-2 border-r-2 border-amber-400 dark:border-amber-600 rounded-lg">
                     <div className="absolute top-0 left-0 w-2.5 h-1 border-t-2 border-amber-400 dark:border-amber-600 rounded-tl-sm"></div>
                     <div className="absolute bottom-0 left-0 w-2.5 h-1 border-b-2 border-amber-400 dark:border-amber-600 rounded-bl-sm"></div>
@@ -921,7 +921,7 @@ export function MatrixMultiplySimulator() {
             <div className="flex flex-wrap gap-8 justify-center items-center">
               {/* Actual Matrix 1 */}
               <div className="flex flex-col items-center gap-2">
-                <span className="text-xs font-bold text-teal-600 dark:text-teal-400 uppercase tracking-wider">C1 (Teal)</span>
+                <span className="text-xs font-bold text-teal-600 dark:text-teal-400 uppercase tracking-wider">C1</span>
                 <div className="relative px-5 py-4 border-l-2 border-r-2 border-teal-400 dark:border-teal-600 rounded-lg">
                   <div className="absolute top-0 left-0 w-2.5 h-1 border-t-2 border-teal-400 dark:border-teal-600 rounded-tl-sm"></div>
                   <div className="absolute bottom-0 left-0 w-2.5 h-1 border-b-2 border-teal-400 dark:border-teal-600 rounded-bl-sm"></div>
@@ -956,7 +956,7 @@ export function MatrixMultiplySimulator() {
               {/* Actual Matrix 2 */}
               {numMatrices >= 2 && (
                 <div className="flex flex-col items-center gap-2">
-                  <span className="text-xs font-bold text-purple-600 dark:text-purple-400 uppercase tracking-wider">C2 (Purple)</span>
+                  <span className="text-xs font-bold text-purple-600 dark:text-purple-400 uppercase tracking-wider">C2</span>
                   <div className="relative px-5 py-4 border-l-2 border-r-2 border-purple-400 dark:border-purple-600 rounded-lg">
                     <div className="absolute top-0 left-0 w-2.5 h-1 border-t-2 border-purple-400 dark:border-purple-600 rounded-tl-sm"></div>
                     <div className="absolute bottom-0 left-0 w-2.5 h-1 border-b-2 border-purple-400 dark:border-purple-600 rounded-bl-sm"></div>
@@ -992,7 +992,7 @@ export function MatrixMultiplySimulator() {
               {/* Actual Matrix 3 */}
               {numMatrices === 3 && (
                 <div className="flex flex-col items-center gap-2">
-                  <span className="text-xs font-bold text-amber-600 dark:text-amber-400 uppercase tracking-wider">C3 (Amber)</span>
+                  <span className="text-xs font-bold text-amber-600 dark:text-amber-400 uppercase tracking-wider">C3</span>
                   <div className="relative px-5 py-4 border-l-2 border-r-2 border-amber-400 dark:border-amber-600 rounded-lg">
                     <div className="absolute top-0 left-0 w-2.5 h-1 border-t-2 border-amber-400 dark:border-amber-600 rounded-tl-sm"></div>
                     <div className="absolute bottom-0 left-0 w-2.5 h-1 border-b-2 border-amber-400 dark:border-amber-600 rounded-bl-sm"></div>
