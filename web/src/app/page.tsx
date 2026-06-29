@@ -4,7 +4,7 @@ import React, { useState } from 'react';
 import { PESimulator } from '@/components/PESimulator';
 import { Simulator } from '@/components/Simulator';
 import { MatrixMultiplySimulator } from '@/components/MatrixMultiplySimulator';
-import { Binary, Cpu, Grid } from 'lucide-react';
+import { Box, Brackets, Grid } from 'lucide-react';
 
 type TabId = 'pe' | 'dot-product' | 'matrix-multiply';
 
@@ -47,7 +47,7 @@ export default function Home() {
                 : 'text-zinc-500 dark:text-zinc-400 hover:text-zinc-900 dark:hover:text-zinc-100'
             }`}
           >
-            <Binary className="w-4 h-4" />
+            <Box className="w-4 h-4" />
             Processing Element
           </button>
           <button
@@ -58,7 +58,7 @@ export default function Home() {
                 : 'text-zinc-500 dark:text-zinc-400 hover:text-zinc-900 dark:hover:text-zinc-100'
             }`}
           >
-            <Cpu className="w-4 h-4" />
+            <Brackets className="w-4 h-4" />
             1D Dot Product
           </button>
           <button
