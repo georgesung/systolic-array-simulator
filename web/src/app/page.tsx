@@ -79,7 +79,7 @@ export default function Home() {
         <h1 className="text-4xl sm:text-5xl font-extrabold tracking-tight text-zinc-900 dark:text-zinc-50 leading-tight">
           {header.title}
         </h1>
-        <p className="text-base sm:text-lg text-zinc-500 dark:text-zinc-400 max-w-lg mx-auto leading-relaxed">
+        <p className="text-base sm:text-lg text-zinc-500 dark:text-zinc-400 mx-auto leading-relaxed">
           {header.subtitle}
         </p>
       </header>
