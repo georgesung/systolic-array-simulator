@@ -301,64 +301,14 @@ export function MatrixMultiplySimulator() {
               <p className="text-[10px] text-zinc-400 mt-2.5 text-center">Weights are static (stationary) and pre-loaded inside the Processing Elements.</p>
             </div>
           </div>
-        </CardContent>
-      </Card>
 
-      {/* 2. Simulation Controller Bar */}
-      <Card className="border-none shadow-md bg-white dark:bg-zinc-950">
-        <CardContent className="py-4 px-6 flex flex-col sm:flex-row items-center justify-between gap-4">
-          <div className="flex items-center gap-4">
-            <span className="text-sm font-bold font-mono bg-zinc-100 dark:bg-zinc-900 px-3 py-1.5 rounded-lg border border-zinc-200 dark:border-zinc-800">
-              Cycle: {cycle}
-            </span>
-            <span className="text-xs text-zinc-400">
-              {isComplete ? (
-                <span className="text-emerald-500 font-semibold">Simulation Complete</span>
-              ) : isInitialized ? (
-                "Simulation running..."
-              ) : (
-                "Click Play or Step to initialize"
-              )}
-            </span>
-          </div>
-
-          <div className="flex flex-wrap gap-2">
-            {!isInitialized ? (
-              <Button onClick={() => { reset(); tick(); }} className="gap-1.5 cursor-pointer bg-zinc-900 text-white dark:bg-zinc-50 dark:text-zinc-950 hover:opacity-90">
-                <StepForward className="w-4 h-4" /> Initialize & Step
-              </Button>
-            ) : (
-              <>
-                <Button
-                  onClick={() => setIsAutoPlaying(!isAutoPlaying)}
-                  disabled={isComplete}
-                  className={`gap-1.5 cursor-pointer ${
-                    isAutoPlaying
-                      ? 'bg-amber-500 hover:bg-amber-600 text-white'
-                      : 'bg-zinc-900 text-white dark:bg-zinc-50 dark:text-zinc-950 hover:opacity-90'
-                  }`}
-                >
-                  {isAutoPlaying ? <Pause className="w-4 h-4" /> : <Play className="w-4 h-4" />}
-                  {isAutoPlaying ? 'Pause' : 'Auto-Play'}
-                </Button>
-
-                <Button
-                  onClick={tick}
-                  disabled={isComplete || isAutoPlaying}
-                  variant="outline"
-                  className="gap-1.5 cursor-pointer"
-                >
-                  <StepForward className="w-4 h-4" /> Step
-                </Button>
-              </>
-            )}
-
+          <div className="pt-4 border-t border-zinc-100 dark:border-zinc-900 flex flex-col sm:flex-row gap-4">
             <Button
               onClick={handleReset}
-              variant="outline"
-              className="gap-1.5 cursor-pointer text-destructive border-destructive/20 hover:bg-destructive/10"
+              className="flex-1 gap-1.5 cursor-pointer"
+              variant={isInitialized ? "secondary" : "default"}
             >
-              <RotateCcw className="w-4 h-4" /> Reset
+              <RotateCcw className="w-4 h-4" /> Load/Reset Simulation
             </Button>
 
             <Button
@@ -372,17 +322,38 @@ export function MatrixMultiplySimulator() {
         </CardContent>
       </Card>
 
-      {/* 3. 2D Systolic Array Visualizer */}
+      {/* 2. 2D Systolic Array Visualizer */}
       <Card className="border-none shadow-md bg-white dark:bg-zinc-950 overflow-hidden">
-        <CardHeader className="border-b border-zinc-100 dark:border-zinc-900 pb-4">
-          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
-            <div>
+        <CardHeader className="border-b border-zinc-100 dark:border-zinc-900 pb-4 flex flex-col md:flex-row md:items-center justify-between gap-4">
+          <div className="space-y-1">
+            <div className="flex items-center gap-2">
               <CardTitle className="text-xl font-bold tracking-tight">Systolic Array Visualizer (2D)</CardTitle>
-              <CardDescription>A weight-stationary 2D grid processing data flowing left-to-right, and accumulating top-to-bottom.</CardDescription>
+              <span className="inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-medium bg-emerald-100 text-emerald-800 dark:bg-emerald-900/30 dark:text-emerald-400 border border-emerald-200 dark:border-emerald-800">
+                WASM Active
+              </span>
             </div>
-            <span className="self-start sm:self-center inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-emerald-100 text-emerald-800 dark:bg-emerald-900/30 dark:text-emerald-400 border border-emerald-200 dark:border-emerald-800">
-              WASM Active
+            <CardDescription>A weight-stationary 2D grid processing data flowing left-to-right, and accumulating top-to-bottom.</CardDescription>
+          </div>
+          <div className="flex flex-wrap items-center gap-2">
+            <span className="text-sm font-bold font-mono bg-zinc-100 dark:bg-zinc-900 px-3 py-1.5 rounded-md mr-2 border border-zinc-200 dark:border-zinc-800">
+              Cycle: {cycle}
             </span>
+            <Button
+              onClick={() => setIsAutoPlaying(!isAutoPlaying)}
+              disabled={isComplete || !isInitialized}
+              variant={isAutoPlaying ? "secondary" : "default"}
+              className="w-32 shadow-sm gap-1.5"
+            >
+              {isAutoPlaying ? <><Pause className="w-4 h-4" /> Pause</> : <><Play className="w-4 h-4" /> Auto-Play</>}
+            </Button>
+            <Button
+              onClick={tick}
+              disabled={isComplete || isAutoPlaying || !isInitialized}
+              variant="outline"
+              className="w-32 shadow-sm gap-1.5"
+            >
+              <StepForward className="w-4 h-4" /> Step
+            </Button>
           </div>
         </CardHeader>
         <CardContent className="p-4 sm:p-8 flex flex-col items-center justify-center min-h-[400px]">
