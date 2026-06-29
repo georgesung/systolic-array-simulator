@@ -4,10 +4,9 @@ import React, { useState } from 'react';
 import { PESimulator } from '@/components/PESimulator';
 import { Simulator } from '@/components/Simulator';
 import { MatrixMultiplySimulator } from '@/components/MatrixMultiplySimulator';
-import { PlaygroundSimulator } from '@/components/PlaygroundSimulator';
-import { Binary, Cpu, Grid, Sliders } from 'lucide-react';
+import { Binary, Cpu, Grid } from 'lucide-react';
 
-type TabId = 'pe' | 'dot-product' | 'matrix-multiply' | 'playground';
+type TabId = 'pe' | 'dot-product' | 'matrix-multiply';
 
 export default function Home() {
   const [activeTab, setActiveTab] = useState<TabId>('pe');
@@ -29,11 +28,6 @@ export default function Home() {
         return {
           title: 'Systolic Array Matrix Multiply',
           subtitle: '2D grid of PEs to compute weight stationary matrix multiplication. A series of dot products!',
-        };
-      case 'playground':
-        return {
-          title: 'Hardware Sandbox',
-          subtitle: 'Configure custom clock rates, inspect registers, and experiment with processing element characteristics.',
         };
     }
   };
@@ -78,17 +72,6 @@ export default function Home() {
             <Grid className="w-4 h-4" />
             2D Matrix Multiply
           </button>
-          <button
-            onClick={() => setActiveTab('playground')}
-            className={`flex items-center gap-2 px-4 py-2 text-sm font-semibold rounded-lg transition-all duration-200 cursor-pointer ${
-              activeTab === 'playground'
-                ? 'bg-white dark:bg-zinc-800 text-zinc-950 dark:text-zinc-50 shadow-sm'
-                : 'text-zinc-500 dark:text-zinc-400 hover:text-zinc-900 dark:hover:text-zinc-100'
-            }`}
-          >
-            <Sliders className="w-4 h-4" />
-            Sandbox Playground
-          </button>
         </nav>
       </div>
 
@@ -105,7 +88,6 @@ export default function Home() {
         {activeTab === 'pe' && <PESimulator />}
         {activeTab === 'dot-product' && <Simulator />}
         {activeTab === 'matrix-multiply' && <MatrixMultiplySimulator />}
-        {activeTab === 'playground' && <PlaygroundSimulator />}
       </main>
 
       <footer className="mt-8 text-center text-sm text-muted-foreground">
