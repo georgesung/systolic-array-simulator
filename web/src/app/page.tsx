@@ -108,8 +108,29 @@ export default function Home() {
         {activeTab === 'playground' && <PlaygroundSimulator />}
       </main>
 
-      <footer className="max-w-2xl mx-auto mt-12 text-center text-xs text-zinc-500">
-        <p>Built with Next.js, Tailwind CSS, and Rust (WASM)</p>
+      <footer className="mt-8 text-center text-sm text-muted-foreground">
+        <div className="mb-2">
+          <a
+            href="https://www.georgesung.com"
+            target="_blank"
+            rel="noopener noreferrer"
+            className="hover:text-primary"
+          >
+            georgesung.com
+          </a>
+          <span className="mx-2">|</span>
+          <a
+            href="https://github.com/georgesung/systolic-array-simulator"
+            target="_blank"
+            rel="noopener noreferrer"
+            className="hover:text-primary"
+          >
+            View source code on Github
+          </a>
+        </div>
+        <p className="text-xs text-muted-foreground/80">
+          © {new Date().getFullYear()} Jou-ching (George) Sung
+        </p>
       </footer>
     </div>
   );
