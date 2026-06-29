@@ -28,7 +28,7 @@ export default function Home() {
       case 'matrix-multiply':
         return {
           title: 'Systolic Array Matrix Multiply',
-          subtitle: '2D grid of PEs to compute matrix multiplication. A series of dot products!',
+          subtitle: '2D grid of PEs to compute weight stationary matrix multiplication. A series of dot products!',
         };
       case 'playground':
         return {

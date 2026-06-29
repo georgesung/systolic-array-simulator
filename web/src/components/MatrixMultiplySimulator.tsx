@@ -18,14 +18,14 @@ export function MatrixMultiplySimulator() {
   const n = size;
 
   const [matrixA, setMatrixA] = useState<string[][]>([
-    ['1', '2', '3'],
-    ['4', '5', '6'],
-    ['7', '8', '9']
+    ['-1', '2', '3'],
+    ['4', '-5', '6'],
+    ['7', '8', '-9']
   ]);
   const [matrixB, setMatrixB] = useState<string[][]>([
-    ['1', '0', '0'],
-    ['0', '1', '0'],
-    ['0', '0', '1']
+    ['1', '9', '-8'],
+    ['-7', '1', '6'],
+    ['5', '-4', '1']
   ]);
 
   const [isAutoPlaying, setIsAutoPlaying] = useState(false);
@@ -33,7 +33,7 @@ export function MatrixMultiplySimulator() {
   // Auto-adjust Matrix A & B sizes to maintain square N x N shapes
   const handleSizeChange = (newSize: number) => {
     setSize(newSize);
-    
+
     // adjust Matrix A to newSize x newSize
     setMatrixA(prev => {
       return Array(newSize).fill(null).map((_, r) => {
@@ -192,7 +192,7 @@ export function MatrixMultiplySimulator() {
       <Card className="border-none shadow-md bg-white dark:bg-zinc-950">
         <CardHeader>
           <CardTitle className="text-xl font-bold tracking-tight">2D Grid Configuration</CardTitle>
-          <CardDescription>Configure dimensions and elements for weight-stationary 2D systolic multiplication.</CardDescription>
+          <CardDescription>Configure dimensions and elements for weight-stationary 2D systolic array matrix multiplication.</CardDescription>
         </CardHeader>
         <CardContent className="space-y-6">
           {/* Dimension Controls */}
@@ -209,7 +209,7 @@ export function MatrixMultiplySimulator() {
                   className="font-mono text-sm w-24"
                 />
                 <span className="text-xs text-zinc-500">
-                  Configures the size of the symmetrical square matrices ({size}×{size}) and the processing grid.
+                  Size of square matrices and processing grid.
                 </span>
               </div>
             </div>
@@ -220,12 +220,12 @@ export function MatrixMultiplySimulator() {
             {/* Matrix A Input */}
             <div className="flex flex-col items-center p-5 bg-zinc-50/50 dark:bg-zinc-900/30 rounded-xl border border-zinc-100 dark:border-zinc-900">
               <div className="flex justify-between items-center w-full mb-3">
-                <span className="text-xs font-bold text-zinc-500 uppercase tracking-wider">Matrix A ({m}×{k})</span>
+                <span className="text-xs font-bold text-zinc-500 uppercase tracking-wider">Inputs (Matrix A: {m}×{k})</span>
                 <Button variant="outline" size="sm" onClick={handleRandomizeA} className="h-7 text-xs gap-1 cursor-pointer">
-                  <Dices className="w-3.5 h-3.5" /> Randomize A
+                  <Dices className="w-3.5 h-3.5" /> RNG
                 </Button>
               </div>
-              
+
               <div className="relative px-5 py-4 border-l-2 border-r-2 border-zinc-400 dark:border-zinc-600 rounded-lg">
                 <div className="absolute top-0 left-0 w-2.5 h-1 border-t-2 border-zinc-400 dark:border-zinc-600 rounded-tl-sm"></div>
                 <div className="absolute bottom-0 left-0 w-2.5 h-1 border-b-2 border-zinc-400 dark:border-zinc-600 rounded-bl-sm"></div>
@@ -264,9 +264,9 @@ export function MatrixMultiplySimulator() {
             {/* Matrix B Input */}
             <div className="flex flex-col items-center p-5 bg-zinc-50/50 dark:bg-zinc-900/30 rounded-xl border border-zinc-100 dark:border-zinc-900">
               <div className="flex justify-between items-center w-full mb-3">
-                <span className="text-xs font-bold text-zinc-500 uppercase tracking-wider">Matrix B ({k}×{n})</span>
+                <span className="text-xs font-bold text-zinc-500 uppercase tracking-wider">Weights (Matrix B: {k}×{n})</span>
                 <Button variant="outline" size="sm" onClick={handleRandomizeB} className="h-7 text-xs gap-1 cursor-pointer">
-                  <Dices className="w-3.5 h-3.5" /> Randomize B
+                  <Dices className="w-3.5 h-3.5" /> RNG
                 </Button>
               </div>
 
@@ -333,8 +333,8 @@ export function MatrixMultiplySimulator() {
                   onClick={() => setIsAutoPlaying(!isAutoPlaying)}
                   disabled={isComplete}
                   className={`gap-1.5 cursor-pointer ${
-                    isAutoPlaying 
-                      ? 'bg-amber-500 hover:bg-amber-600 text-white' 
+                    isAutoPlaying
+                      ? 'bg-amber-500 hover:bg-amber-600 text-white'
                       : 'bg-zinc-900 text-white dark:bg-zinc-50 dark:text-zinc-950 hover:opacity-90'
                   }`}
                 >
@@ -445,7 +445,7 @@ export function MatrixMultiplySimulator() {
                         }`}
                       >
                         <span className="absolute top-1 right-2 text-[8px] font-bold text-zinc-400">PE({r},{c})</span>
-                        
+
                         <div className="text-center space-y-1 select-none">
                           <p className="text-xs font-bold text-indigo-600 dark:text-indigo-400">w: {formatFloat(state.weight)}</p>
                           <div className="flex flex-col gap-0.5 justify-center text-[10px] font-mono text-zinc-500 dark:text-zinc-400 border-t border-dashed border-zinc-100 dark:border-zinc-900 pt-1 mt-1">
