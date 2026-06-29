@@ -90,20 +90,21 @@ The Next.js frontend integrates the compiled WASM package as a local module:
 
 Once the WASM is compiled, you can run the web dashboard:
 
-Dev
+#### Development
 ```bash
 cd web
 npm install
-npm run dev -- --webpack
+npm run dev
 ```
 Then open [http://localhost:3000](http://localhost:3000) in your browser.
 
-Prod
+#### Production
+To build the static site and serve it locally:
 ```bash
 cd web
 npm install
-npx next build --webpack
-npx serve out
+npm run build
+npm run serve
 ```
 
 ---
