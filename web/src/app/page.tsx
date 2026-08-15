@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { PESimulator } from '@/components/PESimulator';
 import { Simulator } from '@/components/Simulator';
 import { MatrixMultiplySimulator } from '@/components/MatrixMultiplySimulator';
@@ -10,6 +10,35 @@ type TabId = 'pe' | 'dot-product' | 'matrix-multiply';
 
 export default function Home() {
   const [activeTab, setActiveTab] = useState<TabId>('pe');
+
+  // Synchronize URL hash with the tab state on load and hash change
+  useEffect(() => {
+    const handleHashChange = () => {
+      const hash = window.location.hash.toLowerCase();
+      if (hash === '#pe') {
+        setActiveTab('pe');
+      } else if (hash === '#dotproduct' || hash === '#dot-product') {
+        setActiveTab('dot-product');
+      } else if (hash === '#matmul' || hash === '#matrix-multiply') {
+        setActiveTab('matrix-multiply');
+      }
+    };
+
+    // Run once on initial mount
+    handleHashChange();
+
+    // Listen for manual hash changes (e.g., back/forward buttons, user editing URL)
+    window.addEventListener('hashchange', handleHashChange);
+    return () => window.removeEventListener('hashchange', handleHashChange);
+  }, []);
+
+  // Helper to switch tabs and update URL hash cleanly
+  const selectTab = (tab: TabId) => {
+    setActiveTab(tab);
+    const hash = tab === 'pe' ? '#pe' : tab === 'dot-product' ? '#dot-product' : '#matmul';
+    // Use replaceState to update URL hash without jumpy browser scroll behavior
+    window.history.replaceState(null, '', hash);
+  };
 
   // Dynamic header based on active tab
   const getHeaderContent = () => {
@@ -40,7 +69,7 @@ export default function Home() {
       <div className="max-w-5xl mx-auto mb-12 flex justify-center">
         <nav className="inline-flex items-center space-x-1 bg-zinc-100 dark:bg-zinc-950 p-1.5 rounded-xl border border-zinc-200/80 dark:border-zinc-800 shadow-sm">
           <button
-            onClick={() => setActiveTab('pe')}
+            onClick={() => selectTab('pe')}
             className={`flex items-center gap-2 px-4 py-2 text-sm font-semibold rounded-lg transition-all duration-200 cursor-pointer ${
               activeTab === 'pe'
                 ? 'bg-white dark:bg-zinc-800 text-zinc-950 dark:text-zinc-50 shadow-sm'
@@ -51,7 +80,7 @@ export default function Home() {
             Processing Element
           </button>
           <button
-            onClick={() => setActiveTab('dot-product')}
+            onClick={() => selectTab('dot-product')}
             className={`flex items-center gap-2 px-4 py-2 text-sm font-semibold rounded-lg transition-all duration-200 cursor-pointer ${
               activeTab === 'dot-product'
                 ? 'bg-white dark:bg-zinc-800 text-zinc-950 dark:text-zinc-50 shadow-sm'
@@ -62,7 +91,7 @@ export default function Home() {
             1D Dot Product
           </button>
           <button
-            onClick={() => setActiveTab('matrix-multiply')}
+            onClick={() => selectTab('matrix-multiply')}
             className={`flex items-center gap-2 px-4 py-2 text-sm font-semibold rounded-lg transition-all duration-200 cursor-pointer ${
               activeTab === 'matrix-multiply'
                 ? 'bg-white dark:bg-zinc-800 text-zinc-950 dark:text-zinc-50 shadow-sm'
