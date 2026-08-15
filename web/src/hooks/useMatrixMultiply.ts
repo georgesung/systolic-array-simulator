@@ -212,7 +212,7 @@ export function useMatrixMultiply(
     ]);
   }, [cycle, m, k, n, matrixA, matrixC]);
 
-  const isComplete = cycle >= m + k + n - 2;
+  const isComplete = cycle >= m + k + n - 1;
 
   return {
     peStates,
