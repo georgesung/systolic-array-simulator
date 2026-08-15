@@ -1,21 +1,24 @@
 'use client';
 
 import React, { useState, useEffect } from 'react';
+import { Instructions } from '@/components/Instructions';
 import { PESimulator } from '@/components/PESimulator';
 import { Simulator } from '@/components/Simulator';
 import { MatrixMultiplySimulator } from '@/components/MatrixMultiplySimulator';
-import { Box, Brackets, Grid } from 'lucide-react';
+import { Box, Brackets, Grid, BookOpen } from 'lucide-react';
 
-type TabId = 'pe' | 'dot-product' | 'matrix-multiply';
+type TabId = 'instructions' | 'pe' | 'dot-product' | 'matrix-multiply';
 
 export default function Home() {
-  const [activeTab, setActiveTab] = useState<TabId>('pe');
+  const [activeTab, setActiveTab] = useState<TabId>('instructions');
 
   // Synchronize URL hash with the tab state on load and hash change
   useEffect(() => {
     const handleHashChange = () => {
       const hash = window.location.hash.toLowerCase();
-      if (hash === '#pe') {
+      if (hash === '#instructions' || hash === '#overview' || hash === '') {
+        setActiveTab('instructions');
+      } else if (hash === '#pe') {
         setActiveTab('pe');
       } else if (hash === '#dotproduct' || hash === '#dot-product') {
         setActiveTab('dot-product');
@@ -35,7 +38,14 @@ export default function Home() {
   // Helper to switch tabs and update URL hash cleanly
   const selectTab = (tab: TabId) => {
     setActiveTab(tab);
-    const hash = tab === 'pe' ? '#pe' : tab === 'dot-product' ? '#dot-product' : '#matmul';
+    const hash =
+      tab === 'instructions'
+        ? '#instructions'
+        : tab === 'pe'
+        ? '#pe'
+        : tab === 'dot-product'
+        ? '#dot-product'
+        : '#matmul';
     // Use replaceState to update URL hash without jumpy browser scroll behavior
     window.history.replaceState(null, '', hash);
   };
@@ -43,6 +53,11 @@ export default function Home() {
   // Dynamic header based on active tab
   const getHeaderContent = () => {
     switch (activeTab) {
+      case 'instructions':
+        return {
+          title: 'Welcome to the Systolic Array Simulator',
+          subtitle: 'An interactive, clock-cycle-accurate visualizer of hardware architectures optimized for deep learning and AI accelerators.',
+        };
       case 'pe':
         return {
           title: 'Processing Element (PE)',
@@ -68,6 +83,17 @@ export default function Home() {
       {/* Top Navigation Bar */}
       <div className="max-w-5xl mx-auto mb-12 flex justify-center">
         <nav className="inline-flex items-center space-x-1 bg-zinc-100 dark:bg-zinc-950 p-1.5 rounded-xl border border-zinc-200/80 dark:border-zinc-800 shadow-sm">
+          <button
+            onClick={() => selectTab('instructions')}
+            className={`flex items-center gap-2 px-4 py-2 text-sm font-semibold rounded-lg transition-all duration-200 cursor-pointer ${
+              activeTab === 'instructions'
+                ? 'bg-white dark:bg-zinc-800 text-zinc-950 dark:text-zinc-50 shadow-sm'
+                : 'text-zinc-500 dark:text-zinc-400 hover:text-zinc-900 dark:hover:text-zinc-100'
+            }`}
+          >
+            <BookOpen className="w-4 h-4" />
+            Instructions
+          </button>
           <button
             onClick={() => selectTab('pe')}
             className={`flex items-center gap-2 px-4 py-2 text-sm font-semibold rounded-lg transition-all duration-200 cursor-pointer ${
@@ -114,6 +140,7 @@ export default function Home() {
       </header>
 
       <main className="max-w-5xl mx-auto">
+        {activeTab === 'instructions' && <Instructions onStart={() => selectTab('pe')} />}
         {activeTab === 'pe' && <PESimulator />}
         {activeTab === 'dot-product' && <Simulator />}
         {activeTab === 'matrix-multiply' && <MatrixMultiplySimulator />}
