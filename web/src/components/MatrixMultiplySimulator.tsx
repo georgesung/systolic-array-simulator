@@ -813,7 +813,7 @@ export function MatrixMultiplySimulator() {
                 </span>
               ) : (
                 <span>
-                  For 2D Matrix Multiplication, inputs from Matrix A enter from the left, while Matrix B inputs stream from the top.
+                  Inputs from Matrix A enter from the left, while the weights (Matrix B) are stationary.
                   Each Processing Element multiplies its current inputs, adds the partial result, and passes the values downstream with a single-cycle register delay.
                 </span>
               )}
