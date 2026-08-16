@@ -8,31 +8,136 @@ The project is split into two core layers:
 
 ---
 
-## 🎨 The Interactive Web App (End-User Dashboard)
+## 📂 Directory Structure
 
-The **Next.js frontend** provides a highly visual, web-native environment for exploring computer architecture concepts. Users can step through simulations cycle-by-cycle or auto-play them at customizable clock rates.
+Below is an overview of the key directories and files comprising the repository, showing how the frontend, the Rust simulation core, the CLI interfaces, and the documentation are organized:
 
-There are **four interactive dashboard modules**:
-
-1. **🔬 Processing Element (PE) Simulator:** Dive deep into the fundamental unit of systolic arrays—the Multiply-Accumulate (MAC) unit. Feed inputs ($X$, $Y$) and watch how they latch into output registers ($X_{out}$, $Y_{out}$) and update local weight registers on each clock tick.
-2. **📊 1D Pipelined Dot Product:** Chain PEs vertically into a 1D column. Stream vector elements through the pipeline and observe the physical requirement of **input staggering**—delaying subsequent inputs by one cycle so that partial sums and values align correctly at each node.
-3. **🧱 2D Systolic Array Matrix Multiply:** Scale up to a 2D grid of PEs executing **Weight-Stationary Matrix Multiplication**. Stationary weights are pre-loaded, inputs flow from the left, and accumulated partial sums flow downward, demonstrating how a 2D array computes high-throughput matrix operations.
-4. **⚙️ Hardware Sandbox:** Configure custom array dimensions, adjust clock speeds, randomise values, and inspect raw hardware registers to run custom experiments.
+```text
+pipeline_add/
+├── Cargo.toml                  # Rust package configuration (CDYLib/RLib) and dependencies
+├── README.md                   # This comprehensive simulator guide and architecture overview
+├── src/                        # 🦀 Core Rust Hardware Simulation Engine
+│   ├── lib.rs                  # Module entrypoint exposing modules to library/WASM
+│   ├── processing_element.rs   # Weight-stationary processing element (MAC unit)
+│   ├── dot_product.rs          # 1D Pipelined array of PEs
+│   ├── systolic_array.rs       # 2D Systolic Array model
+│   ├── pipeline_add.rs         # Educational 2-stage pipelined integer adder
+│   ├── wasm_bindings.rs        # WebAssembly wrappers (DotProductSim, SystolicArray2DSim)
+│   └── bin/                    # Rust native CLI simulators for debugging
+│       ├── cli_dot_product.rs
+│       └── cli_systolic_array.rs
+├── web/                        # 💻 Next.js Frontend Application
+│   ├── package.json            # Node.js dependencies, scripts, and build metadata
+│   └── src/
+│       ├── app/                # Main React Page Router (layout.tsx, page.tsx)
+│       ├── components/         # Interactive simulation UI views
+│       │   ├── Instructions.tsx            # Tab 1: Static and interactive educational instructions
+│       │   ├── PESimulator.tsx             # Tab 2: Single PE MAC view
+│       │   ├── Simulator.tsx               # Tab 3: 1D Dot Product simulator
+│       │   ├── MatrixMultiplySimulator.tsx # Tab 4: 2D Matrix Multiply simulator
+│       │   └── PipelineVisualizer.tsx      # SVG-based dynamic hardware datapath visualizer
+│       └── hooks/              # Custom React Hooks interfacing with Rust WebAssembly
+│           ├── usePipeline.ts              # Connects Tab 3 to DotProductSim
+│           └── useMatrixMultiply.ts        # Connects Tab 4 to SystolicArray2DSim
+└── docs/                       # 📚 Static Documentation & Educational Theory Pages
+    ├── architecture/           # Frontend and core engine design documents
+    └── theory/                 # Mathematical and physical theory explanations
+```
 
 ---
 
-## ⚙️ The Rust Core (Cycle-Accurate Hardware Model)
+## 💻 1. Interactive Frontend (Next.js / React)
 
-To guarantee true hardware fidelity, the underlying simulation is written in **Rust** and acts as a cycle-accurate hardware model:
-- **Deterministic State:** Every Processing Element has physical state structures representing its hardware registers (`weight`, `reg_x_out`, `reg_y_out`).
-- **Simultaneous Clock Ticks:** In actual hardware, all PEs latch and transition their states simultaneously on a clock edge. The Rust model simulates this concurrent behavior sequentially by computing state transitions from the bottom-right to top-left of the grid using the values latched during the *previous* cycle.
-- **WebAssembly Compilation:** Rust is compiled directly to WASM using `wasm-pack`, enabling near-native hardware simulation execution speeds directly inside the user's browser.
+The user touchpoint is a modern, responsive web application located in `./web/`. It uses React, TypeScript, and Tailwind CSS to turn hardware concepts into intuitive, interactive visual schematics.
 
-The core code is organized as follows:
-- **`src/processing_element.rs`**: Core logic for a single MAC processing element.
-- **`src/dot_product.rs`**: Orchestrator for 1D pipelined arrays of PEs.
-- **`src/systolic_array.rs`**: 2D systolic array grid model.
-- **`src/wasm_bindings.rs`**: High-performance serialization bridge that packs complex hardware state into flat arrays to cross the WebAssembly boundary with zero overhead.
+Users can step through simulations cycle-by-cycle or auto-play them at customizable clock rates.
+
+### Progressive Learning Journey (The Tabs)
+
+#### 🔬 Tab 1: Instructions & Overview
+* **Concept:** Provides an educational overview and visual guide on how to interact with the simulators.
+* **Content:** Renders standard Markdown text and math expressions explaining systolic concepts (e.g., how registers latch values, data streaming, clock boundaries).
+* **Educational Takeaway:** Serves as a foundational landing page, ensuring students understand the underlying hardware definitions and color-coding schemes before running the simulators.
+
+#### 📦 Tab 2: Processing Element (PE) Simulator
+* **Concept:** Models the atomic Multiply-Accumulate (MAC) cell of a systolic array.
+* **Inputs:** Allows entering an internal stationary `weight` register and comma-separated lists of stream values for $X$ (Activations) and $Y$ (Accumulating partial sums).
+* **Visual Representation:** Renders the PE as a central box highlighting its internal stationary register, input arrows, and physical boundary registers that latch and delay outputs.
+* **Educational Takeaway:** Demonstrates why a value entering on cycle $N$ only affects downstream cells on cycle $N+1$ due to synchronous latching/delay.
+
+#### 📊 Tab 3: 1D Dot Product Simulator
+* **Concept:** Connects PEs into a single vertical column to calculate a vector dot product ($\vec{x} \cdot \vec{w}$).
+* **Inputs:** Customizable vector size $N$, batch size $M$, weight vectors, and input matrices.
+* **Visual Representation:** Renders a vertical line of linked PEs, showing data elements actively shifting and computing step-by-step.
+* **Educational Takeaway:** Illustrates **pipeline latency**—the first dot-product result takes $N$ cycles to emerge from the bottom, but subsequent results cascade out sequentially every clock cycle thereafter.
+
+#### 🧱 Tab 4: 2D Matrix Multiply Simulator
+* **Concept:** Computes Weight-Stationary Matrix Multiplication ($C = A \times B$) using a 2D grid of PEs.
+* **Inputs:** Square size selector ($N \times N$, adjustable from $2 \times 2$ up to $8 \times 8$) and multi-matrix sequential batching (simultaneously feed $A_1, A_2, A_3$ through the array).
+* **Visual Representation:** Highlights the **skewed input wavefront** (where rows of Matrix A are delayed diagonally by $0, 1, 2, \dots$ cycles) so they intersect the correct stationary weight at the exact cycle their accumulating $Y$ sum arrives from the PE above.
+* **Educational Takeaway:** Clarifies spatial and temporal concurrency. Students see multiple independent multiplications and accumulations happening in parallel across different physical components in real-time.
+
+---
+
+## 🦀 2. Hardware Simulation Core (Rust)
+
+To guarantee true hardware fidelity, the underlying computation engine is written in **Rust** (`src/`) and acts as a cycle-accurate hardware model.
+
+### Strict Cycle-Accurate Components
+* **`ProcessingElement` (`src/processing_element.rs`):** A physical struct containing actual storage registers:
+  * `weight`: Loaded beforehand (weight-stationary configuration register).
+  * `reg_x_out`: Register holding activation $x$ passed to the right neighbor on the next tick.
+  * `reg_y_out`: Register holding the accumulated $y$ value passed to the bottom neighbor on the next tick.
+* **`DotProduct1D` (`src/dot_product.rs`):** A 1D array of `ProcessingElement`s.
+* **`SystolicArray2D` (`src/systolic_array.rs`):** A 2D grid of `ProcessingElement`s.
+* **`PipelinedAdder` (`src/pipeline_add.rs`):** An auxiliary educational module representing a 2-stage pipelined integer adder.
+
+### Simulating Simultaneous Clock Edges in Sequential Code
+In actual hardware, all registers update simultaneously on a single clock edge. In sequential software, a naive loop would overwrite a register prematurely, causing a cascade of bad values within a single tick. 
+
+To prevent this, the Rust simulation core **iterates backward** (from bottom-right to top-left) through the array. This allows reading neighbors' register values from the *previous* clock cycle before they are updated by the current tick:
+
+```rust
+// Iterating backwards simulates concurrent clock edge propagation
+for r in (0..rows).rev() {
+    for c in (0..cols).rev() {
+        // Read input X from left PE's previous cycle register
+        let x_in = if c == 0 { left_ins[r] } else { pes[r * cols + (c - 1)].reg_x_out() };
+
+        // Read input Y from top PE's previous cycle register
+        let y_in = if r == 0 { top_ins[c]  } else { pes[(r - 1) * cols + c].reg_y_out() };
+
+        // Compute combinatorial logic & latch outputs in registers
+        let idx = r * cols + c;
+        pes[idx].tick(x_in, y_in);
+    }
+}
+```
+
+---
+
+## 🔌 3. The WebAssembly Bridge (How They Connect)
+
+The boundary between the user's browser (React) and the cycle-accurate compiled core (Rust) is crossed cleanly using **WebAssembly** and **`wasm-bindgen`** bindings.
+
+```text
+       [ Next.js UI ] <--- Real-time Redraw of State --- [ React State ]
+             |                                                 ^
+             | (User ticks or Auto-Plays)                      | (get_state)
+             v                                                 |
+[ Custom React Hooks (usePipeline / useMatrixMultiply) ] ------+
+             |
+             v (WebAssembly Interface)
+   [ Rust WASM Simulators (DotProductSim / SystolicArray2DSim) ]
+```
+
+1. **WASM Binding Compilation (`src/wasm_bindings.rs`):** Exposes stateful Rust objects `DotProductSim` and `SystolicArray2DSim` directly to JavaScript.
+2. **State Management via Hooks (`web/src/hooks/`):** React hooks (`usePipeline.ts` and `useMatrixMultiply.ts`) instantiate the simulators and maintain UI synchronicity.
+3. **The Cycle Loop:** 
+   * When a user steps forward or toggles Auto-Play, the hook invokes the simulator's `.tick()` method.
+   * The simulator executes one hardware-level cycle.
+   * The hook immediately pulls a flat representation of all internal PE registers via `.get_state()`.
+   * This updates the React state, prompting Tailwind/HTML elements to render updated numbers, flow arrows, and color highlights instantly on screen.
 
 ---
 
