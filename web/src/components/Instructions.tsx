@@ -33,6 +33,18 @@ export function Instructions({ onStart }: InstructionsProps) {
           <p>
             The word <em className="italic">systolic</em> comes from the heartbeat (systole), symbolizing how data is pumped through the array at every clock tick. Once data is loaded from main memory, it is reused across multiple adjacent PEs without being written back, resulting in exceptionally high compute density, minimal memory bandwidth, and near-perfect efficiency!
           </p>
+          
+          <div className="mt-4 p-4 rounded-lg bg-indigo-50/50 dark:bg-indigo-950/20 border border-indigo-100 dark:border-indigo-950/50 text-sm">
+            <span className="font-semibold text-indigo-950 dark:text-indigo-300">📖 Deep Dive:</span> Learn more about why matrix multiplications dominate LLM workloads, where they occur, and how hardware accelerators optimize them in the{' '}
+            <a 
+              href="https://www.georgesung.com/ai-hardware/systolic-array-matmul" 
+              target="_blank" 
+              rel="noopener noreferrer"
+              className="font-semibold text-indigo-600 dark:text-indigo-400 underline hover:text-indigo-800 dark:hover:text-indigo-300"
+            >
+              Supplementary Blog Post
+            </a>.
+          </div>
         </CardContent>
       </Card>
 

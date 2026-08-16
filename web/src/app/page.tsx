@@ -147,7 +147,7 @@ export default function Home() {
       </main>
 
       <footer className="mt-8 text-center text-sm text-muted-foreground">
-        <div className="mb-2">
+        <div className="mb-2 flex items-center justify-center gap-2 flex-wrap">
           <a
             href="https://www.georgesung.com"
             target="_blank"
@@ -156,7 +156,16 @@ export default function Home() {
           >
             georgesung.com
           </a>
-          <span className="mx-2">|</span>
+          <span className="text-zinc-300 dark:text-zinc-800">|</span>
+          <a
+            href="https://www.georgesung.com/ai-hardware/systolic-array-matmul"
+            target="_blank"
+            rel="noopener noreferrer"
+            className="hover:text-primary font-medium text-indigo-600 dark:text-indigo-400"
+          >
+            Supplementary Blog Post
+          </a>
+          <span className="text-zinc-300 dark:text-zinc-800">|</span>
           <a
             href="https://github.com/georgesung/systolic-array-simulator"
             target="_blank"
