@@ -5,7 +5,9 @@ import { useMatrixMultiply } from '@/hooks/useMatrixMultiply';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
-import { Play, Pause, StepForward, RotateCcw, Dices, GraduationCap, ArrowRight, ArrowDown } from 'lucide-react';
+import { Play, Pause, StepForward, RotateCcw, Dices, GraduationCap } from 'lucide-react';
+import { SystolicGrid, type PEFlow, type StreamCell } from '@/components/SystolicGrid';
+import { TONES, toneForIndex } from '@/lib/tones';
 
 const formatFloat = (num: number): number => {
   return Math.round(num * 100) / 100;
@@ -180,65 +182,17 @@ export function MatrixMultiplySimulator() {
     reset();
   };
 
-  // Helper color map for different matrices in batch pipeline
+  // One tone per input matrix in the batch: A1 teal, A2 purple, A3 amber.
   const getMatrixColorClasses = (globalRowIdx: number) => {
-    const matrixId = Math.floor(globalRowIdx / size) + 1;
-    switch (matrixId) {
-      case 1:
-        return {
-          text: 'text-teal-600 dark:text-teal-400',
-          bg: 'bg-teal-50 dark:bg-teal-950/20',
-          border: 'border-teal-200 dark:border-teal-800',
-          borderActive: 'border-teal-500 dark:border-teal-700',
-          bgActive: 'bg-teal-500 text-white',
-          textActive: 'text-teal-900 dark:text-teal-300',
-          name: 'A1',
-          cName: 'C1',
-        };
-      case 2:
-        return {
-          text: 'text-purple-600 dark:text-purple-400',
-          bg: 'bg-purple-50 dark:bg-purple-950/20',
-          border: 'border-purple-200 dark:border-purple-800',
-          borderActive: 'border-purple-500 dark:border-purple-700',
-          bgActive: 'bg-purple-500 text-white',
-          textActive: 'text-purple-900 dark:text-purple-300',
-          name: 'A2',
-          cName: 'C2',
-        };
-      case 3:
-        return {
-          text: 'text-amber-600 dark:text-amber-400',
-          bg: 'bg-amber-50 dark:bg-amber-950/20',
-          border: 'border-amber-200 dark:border-amber-800',
-          borderActive: 'border-amber-500 dark:border-amber-700',
-          bgActive: 'bg-amber-500 text-white',
-          textActive: 'text-amber-900 dark:text-amber-300',
-          name: 'A3',
-          cName: 'C3',
-        };
-      default:
-        return {
-          text: 'text-zinc-600 dark:text-zinc-400',
-          bg: 'bg-zinc-50 dark:bg-zinc-950/20',
-          border: 'border-zinc-200 dark:border-zinc-800',
-          borderActive: 'border-zinc-500 dark:border-zinc-700',
-          bgActive: 'bg-zinc-500 text-white',
-          textActive: 'text-zinc-900 dark:text-zinc-300',
-          name: 'A',
-          cName: 'C',
-        };
+    const matrixId = Math.floor(globalRowIdx / size);
+    if (matrixId < 0 || matrixId > 2) {
+      return { tone: TONES.zinc, name: 'A', cName: 'C' };
     }
-  };
-
-  const getArrowColorClass = (globalRowIdx: number) => {
-    const matrixId = Math.floor(globalRowIdx / size) + 1;
-    switch (matrixId) {
-      case 1: return 'text-teal-500 dark:text-teal-400';
-      case 2: return 'text-purple-500 dark:text-purple-400';
-      case 3: return 'text-amber-500 dark:text-amber-400';
-      default: return 'text-zinc-300 dark:text-zinc-700';
-    }
+    return {
+      tone: toneForIndex(matrixId),
+      name: `A${matrixId + 1}`,
+      cName: `C${matrixId + 1}`,
+    };
   };
 
   // Expected mathematical multiplication result (A * B) for each matrix
@@ -339,6 +293,43 @@ export function MatrixMultiplySimulator() {
     }
     // Most recently exited first (at the top of our vertical stack)
     return exited.reverse();
+  };
+
+  // --- Adapters from this tab's batch bookkeeping to <SystolicGrid /> ---------
+
+  const totalStreamRows = m * numMatrices;
+
+  const leftQueueCells = (r: number): StreamCell[] => {
+    const items = getLeftQueueToDisplay(r);
+    return items.map((item, idx) => ({
+      val: item.val,
+      // globalRowIdx -1 marks the skew padding zeros ahead of row r's data.
+      tone: item.globalRowIdx >= 0 ? getMatrixColorClasses(item.globalRowIdx).tone : null,
+      active: idx === items.length - 1 && cycle < totalStreamRows + r && isInitialized,
+    }));
+  };
+
+  const bottomQueueCells = (c: number): StreamCell[] =>
+    getExitedForCol(c)
+      .slice(0, size * numMatrices)
+      .map((item, idx) => ({
+        val: item.val,
+        tone: getMatrixColorClasses(item.globalRowIdx).tone,
+        // The list is newest-first, so index 0 is what just fell out of the array.
+        active: idx === 0 && isInitialized,
+      }));
+
+  const flowAt = (r: number, c: number): PEFlow | null => {
+    // A(i, r) reaches PE(r, c) on cycle i + r + c + 1.
+    const globalRowIdx = cycle - 1 - r - c;
+    if (!isInitialized || globalRowIdx < 0 || globalRowIdx >= totalStreamRows) return null;
+    const colors = getMatrixColorClasses(globalRowIdx);
+    const localRow = globalRowIdx % m;
+    return {
+      tone: colors.tone,
+      xLabel: <>({colors.name}<sub>{localRow},{r}</sub>)</>,
+      yLabel: <>({colors.cName}<sub>{localRow},{c}</sub>)</>,
+    };
   };
 
   // Real-time PE utilization metric %
@@ -523,8 +514,8 @@ export function MatrixMultiplySimulator() {
                             }}
                             className={`w-11 h-10 text-center font-mono text-sm border rounded-md bg-white dark:bg-zinc-950 transition-all duration-300 focus:outline-none focus:ring-1 focus:ring-indigo-500 ${
                               active
-                                ? `font-semibold scale-105 shadow-sm ${activeColor.bgActive} border-zinc-500`
-                                : `border-zinc-200 dark:border-zinc-800 text-zinc-800 dark:text-zinc-200 hover:${activeColor.bg}`
+                                ? `font-semibold scale-105 shadow-sm ${activeColor.tone.bgActive} border-zinc-500`
+                                : `border-zinc-200 dark:border-zinc-800 text-zinc-800 dark:text-zinc-200 hover:${activeColor.tone.bg}`
                             }`}
                           />
                         );
@@ -641,164 +632,18 @@ export function MatrixMultiplySimulator() {
           </div>
         </CardHeader>
         <CardContent className="p-4 sm:p-8 flex flex-col items-center justify-center min-h-[400px]">
-          {/* Main Unified Responsive Grid */}
-          <div className="w-full overflow-x-auto py-6 px-2 flex justify-center">
-            <div
-              className="grid gap-x-14 gap-y-10 relative p-8 bg-zinc-50 dark:bg-zinc-900/40 rounded-2xl border border-dashed border-zinc-200 dark:border-zinc-800 min-w-[650px]"
-              style={{
-                gridTemplateColumns: `${40 + size * 34}px repeat(${n}, minmax(110px, 1fr))`,
-              }}
-            >
-              {/* TOP ROW: B Column Headers */}
-              <div key="top-spacer" className="h-6 flex items-center justify-center"></div>
-              {Array.from({ length: n }).map((_, c) => (
-                <div key={`top-col-${c}`} className="flex flex-col items-center justify-end h-6 text-zinc-400 dark:text-zinc-600 font-mono text-xs font-semibold">
-                  <span className="flex flex-col items-center">B<sub>*,{c}</sub><ArrowDown className="w-3.5 h-3.5 mt-0.5 text-zinc-300 dark:text-zinc-700" /></span>
-                </div>
-              ))}
-
-              {/* MIDDLE ROWS: Left Input + PEs */}
-              {Array.from({ length: k }).map((_, r) => (
-                <React.Fragment key={`row-${r}`}>
-                  {/* Left input queue for row r */}
-                  <div className="flex items-center justify-end h-28 pr-2">
-                    <div className="flex items-center justify-end gap-1 w-full font-mono">
-                      <span className="text-[10px] text-zinc-400 mr-1 font-bold">A<sub>*,{r}</sub></span>
-                      {getLeftQueueToDisplay(r).map((item, idx) => {
-                        const { val, globalRowIdx } = item;
-                        // Check if this element is about to enter (it is the rightmost element in our reversed visible list)
-                        const isEntering = idx === getLeftQueueToDisplay(r).length - 1;
-                        const colors = globalRowIdx >= 0 ? getMatrixColorClasses(globalRowIdx) : null;
-
-                        return (
-                          <div
-                            key={idx}
-                            className={`w-8 h-8 rounded-md border flex items-center justify-center text-xs font-semibold shadow-sm transition-all duration-300 ${
-                              globalRowIdx === -1
-                                ? 'bg-zinc-100 dark:bg-zinc-900 text-zinc-400 border-zinc-200 dark:border-zinc-800'
-                                : isEntering && cycle < m * numMatrices + r && isInitialized
-                                ? `${colors?.bgActive || 'bg-emerald-500 text-white border-emerald-600'} scale-105 font-bold`
-                                : `${colors?.bg || 'bg-zinc-50'} ${colors?.text || 'text-zinc-400'} ${colors?.border || 'border-zinc-200'}`
-                            }`}
-                          >
-                            {formatFloat(val)}
-                          </div>
-                        );
-                      })}
-                      <ArrowRight className="w-4 h-4 text-emerald-500 ml-1 shrink-0" />
-                    </div>
-                  </div>
-
-                  {/* PEs for this row */}
-                  {Array.from({ length: n }).map((_, c) => {
-                    const state = peStates[r]?.[c] || { weight: matrixB[r]?.[c] || 0, xOut: 0, yOut: 0 };
-                    // PE has active data flowing through it if globalRowIdx is valid
-                    const globalRowIdx = cycle - 1 - r - c;
-                    const hasActiveData = isInitialized && globalRowIdx >= 0 && globalRowIdx < m * numMatrices;
-                    const colors = hasActiveData ? getMatrixColorClasses(globalRowIdx) : null;
-                    const isPeActive = isInitialized && (state.xOut !== 0 || state.yOut !== 0);
-
-                    return (
-                      <div
-                        key={`pe-${r}-${c}`}
-                        className={`relative flex flex-col items-center justify-center p-3 bg-white dark:bg-zinc-950 border-2 rounded-xl shadow-md transition-all duration-300 w-28 h-28 mx-auto ${
-                          hasActiveData && colors
-                            ? `border-2 ${colors.borderActive} ring-2 ring-indigo-500/10`
-                            : isPeActive
-                            ? 'border-indigo-500 ring-2 ring-indigo-500/20 dark:border-indigo-400 dark:ring-indigo-400/20'
-                            : 'border-zinc-200 dark:border-zinc-800'
-                        }`}
-                      >
-                        <span className="absolute top-1 right-2 text-[8px] font-bold text-zinc-400">PE({r},{c})</span>
-
-                        <div className="text-center space-y-1 select-none">
-                          <p className="text-xs font-bold text-indigo-600 dark:text-indigo-400">w: {formatFloat(state.weight)}</p>
-                          <div className="flex flex-col gap-0.5 justify-center text-[10px] font-mono text-zinc-500 dark:text-zinc-400 border-t border-dashed border-zinc-100 dark:border-zinc-900 pt-1 mt-1">
-                            <span className={isInitialized && state.xOut !== 0 ? `font-bold ${colors?.text || "text-emerald-600 dark:text-emerald-400"}` : "text-zinc-400 dark:text-zinc-600"}>
-                              x: {isInitialized ? formatFloat(state.xOut) : 0}
-                              {hasActiveData && colors && (
-                                <span className="text-[8px] font-bold opacity-80 ml-1">
-                                  ({colors.name}<sub>{Math.floor(globalRowIdx % m)},{r}</sub>)
-                                </span>
-                              )}
-                            </span>
-                            <span className={isInitialized && state.yOut !== 0 ? `font-bold ${colors?.text || "text-blue-600 dark:text-blue-400"}` : "text-zinc-400 dark:text-zinc-600"}>
-                              y: {isInitialized ? formatFloat(state.yOut) : 0}
-                              {hasActiveData && colors && (
-                                <span className="text-[8px] font-bold opacity-80 ml-1">
-                                  ({colors.cName}<sub>{Math.floor(globalRowIdx % m)},{c}</sub>)
-                                </span>
-                              )}
-                            </span>
-                          </div>
-                        </div>
-
-                        {/* Connection Arrows right and down */}
-                        {c < n - 1 && (
-                          <div className="absolute top-1/2 -right-10 -translate-y-1/2 flex items-center z-10">
-                            <ArrowRight className={`w-5 h-5 transition-colors duration-300 ${
-                              hasActiveData
-                                ? getArrowColorClass(globalRowIdx)
-                                : isInitialized && state.xOut !== 0
-                                ? 'text-emerald-500'
-                                : 'text-zinc-200 dark:text-zinc-800'
-                            } scale-110 font-bold`} />
-                          </div>
-                        )}
-                        {r < k - 1 && (
-                          <div className="absolute left-1/2 -bottom-9 -translate-x-1/2 flex flex-col items-center z-10">
-                            <ArrowDown className={`w-5 h-5 transition-colors duration-300 ${
-                              hasActiveData
-                                ? getArrowColorClass(globalRowIdx)
-                                : isInitialized && state.yOut !== 0
-                                ? 'text-blue-500'
-                                : 'text-zinc-200 dark:text-zinc-800'
-                            } scale-110 font-bold`} />
-                          </div>
-                        )}
-                      </div>
-                    );
-                  })}
-                </React.Fragment>
-              ))}
-
-              {/* BOTTOM ROW: bottom output queue for each column */}
-              <div key="bottom-spacer" className="min-h-28"></div>
-              {Array.from({ length: n }).map((_, c) => {
-                const exitedVals = getExitedForCol(c);
-
-                return (
-                  <div key={`col-out-${c}`} className="flex flex-col items-center min-h-28">
-                    <ArrowDown className="w-4 h-4 text-blue-500 mb-1 shrink-0" />
-                    <div className="flex flex-col items-center gap-1 w-full font-mono">
-                      {exitedVals.slice(0, size * numMatrices).map((item, idx) => {
-                        const { val, globalRowIdx } = item;
-                        const isJustExited = idx === 0; // Top element in list is the most recent
-                        const colors = getMatrixColorClasses(globalRowIdx);
-
-                        return (
-                          <div
-                            key={idx}
-                            className={`w-8 h-8 rounded-md border flex items-center justify-center text-xs font-semibold shadow-sm transition-all duration-300 ${
-                              isJustExited && isInitialized
-                                ? `${colors.bgActive} border-zinc-600 scale-105 font-bold animate-pulse`
-                                : `${colors.bg} ${colors.text} ${colors.border}`
-                            }`}
-                          >
-                            {formatFloat(val)}
-                          </div>
-                        );
-                      })}
-                      {exitedVals.length > size * numMatrices && (
-                        <span className="text-[8px] text-zinc-400 font-bold leading-none">...</span>
-                      )}
-                      <span className="text-[9px] text-zinc-400 mt-0.5 font-bold">C<sub>*,{c}</sub></span>
-                    </div>
-                  </div>
-                );
-              })}
-            </div>
-          </div>
+          <SystolicGrid
+            rows={k}
+            cols={n}
+            peStates={peStates}
+            fallbackWeight={(r, c) => parsedMatrixB[r]?.[c] ?? 0}
+            isInitialized={isInitialized}
+            leftGutterPx={40 + size * 34}
+            leftQueue={leftQueueCells}
+            bottomQueue={bottomQueueCells}
+            bottomOverflow={c => getExitedForCol(c).length > size * numMatrices}
+            flowAt={flowAt}
+          />
 
           <div className="mt-8 text-center max-w-lg space-y-2">
             <h4 className="font-bold text-zinc-800 dark:text-zinc-200 flex items-center justify-center gap-1.5">
