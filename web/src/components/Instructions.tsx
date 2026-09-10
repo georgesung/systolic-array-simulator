@@ -150,7 +150,7 @@ export function Instructions({ onStart }: InstructionsProps) {
                 Real arrays are a fixed size, and real matrices are much larger. So the weights get chopped into <strong>tiles</strong>, loaded one at a time.
               </p>
               <p>
-                Each tile is a separate pass over the same hardware, so every pass pays for a <strong>weight reload</strong> and a fresh pipeline fill.
+                Each tile is a separate pass over the same hardware, so every pass refills the pipeline from empty and needs a <strong>weight reload</strong> — which a weight FIFO can hide behind the previous tile&apos;s compute.
               </p>
               <p>
                 Partial sums from different tiles are added up in an <strong>accumulator</strong> outside the array — so a result cell is revisited, not computed once.
