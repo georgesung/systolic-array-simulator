@@ -69,7 +69,7 @@ pipeline_add/
 
 The user touchpoint is a modern, responsive web application located in `./web/`. It uses Next.js 16 (App Router), React 19, TypeScript, and Tailwind CSS v4 with shadcn/ui components, turning hardware concepts into intuitive, interactive visual schematics.
 
-Users can step through simulations cycle-by-cycle, or auto-play them at a fixed pace (1 s per cycle in the 1D and tiled tabs, 1.5 s in the 2D tab). The whole app is a single client-rendered page; the five views are tabs, each deep-linkable via a URL hash:
+Users can step through simulations cycle-by-cycle, or auto-play them at a fixed pace (1 s per cycle in the 1D tab, 1.5 s in the 2D tab, 0.7 s in the tiled tab). The whole app is a single client-rendered page; the five views are tabs, each deep-linkable via a URL hash:
 
 | Tab | URL hash |
 | --- | --- |
@@ -105,11 +105,19 @@ Users can step through simulations cycle-by-cycle, or auto-play them at a fixed 
 * **Educational Takeaway:** Clarifies spatial and temporal concurrency. Students see multiple independent multiplications and accumulations happening in parallel across different physical components in real-time.
 
 #### 🧩 Tab 5: Tiled Matrix Multiply Simulator
-* **Concept:** Runs a matrix multiply that is *larger than the hardware*. The physical array is fixed (1×1 up to 4×4 PEs) while the logical problem goes up to 8×8, so $B$ is chopped into tiles that are loaded into the array one at a time.
-* **Inputs:** Logical matrix dimension $N$ and physical array size, plus editable $A$ and $B$ matrices.
-* **Visual Representation:** A tile map showing $A$, $B$ and $C$ with tile boundaries drawn and the current tile window highlighted; the shared PE grid running the current tile pass (with zero-padded PEs dimmed on edge tiles); and a live accumulator for $C$ where cells are dashed while partial and solid once every K-tile has landed.
-* **Educational Takeaway:** Shows the two costs tiling introduces — a **weight reload** per tile, and a fresh **pipeline fill and drain** per pass — and why they push MAC utilization well below 100%. It is also where a $C$ cell stops being computed once and starts being *revisited*: partial sums from different K-tiles are summed in the accumulator, not inside the array.
-* **Note:** This tab required no changes to the Rust core. It orchestrates repeated passes of the same `SystolicArray2DSim` from TypeScript, which is exactly how a fixed-size array is driven in real life.
+The most advanced tab, and the one that models a real accelerator end to end. It follows the **TPU model**: a fixed weight-stationary array, a weight FIFO, and an accumulator — deliberately *not* the CPU/BLIS cache-blocking model, because a systolic array's whole argument is that it gets its reuse spatially (as data propagates across PEs) rather than temporally (through a cache hierarchy).
+
+* **Concept:** Runs a matrix multiply that is *larger than the hardware*. The physical array is fixed (1×1 up to 4×4 PEs) while $B$ is chopped into tiles that are loaded into the array one at a time.
+* **Inputs:** $M$, $K$ and $N$ are set independently ($M$ up to 16, $K$/$N$ up to 8), plus the physical array size and a weight-FIFO toggle. **$M$ is the important knob** — it controls how many rows stream through one resident weight tile.
+* **Loop order:** N outer, K middle, M streamed innermost. This is the Goto/BLIS order: $B$ is read once, $A$ is re-read once per N-tile, and each $C$ cell is written once per K-tile.
+* **Visual Representation:**
+  * A **tile map** showing $A$, $B$ and $C$ with tile boundaries drawn and the current tile window highlighted.
+  * The shared PE grid running the current tile pass, with zero-padded PEs dimmed on edge tiles, and — during a weight load — the tile visibly **shifting in one row per cycle** from the top.
+  * A **weight FIFO panel** staging the next tile while the current one computes.
+  * A **pass timeline**: one bar per cycle, height = active MACs, colored by phase (weight load → pipeline fill → steady state → pipeline drain).
+  * A live **accumulator** for $C$: cells are dashed while partial and solid once every K-tile has landed.
+* **Educational Takeaway:** Every tile pass pays two fixed taxes regardless of how much work it does — shifting the weights in (one cycle per array row) and filling then draining the pipeline. The only way to make them cheap is to amortize them over more work. Raise $M$ and the steady-state plateau widens as utilization climbs (on a 2×2 array with $K=N=4$: 36% at $M=2$, 63% at $M=6$, 82% at $M=16$). That is the whole argument for large batch sizes on an accelerator. Toggling the weight FIFO off exposes every load as a stall, which is why real hardware double-buffers them.
+* **Note:** This tab required no changes to the Rust core. It orchestrates repeated passes of the same `SystolicArray2DSim` from TypeScript, and models the weight-load timing in the scheduler — which is exactly how a fixed-size array is driven in real life.
 
 ---
 

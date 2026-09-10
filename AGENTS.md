@@ -95,6 +95,20 @@ The best regression check for array logic is `test_systolic_matmul_random_dynami
   `load_weights` does **not** clear the data registers, so each pass builds a fresh sim rather than
   reloading a dirty array; and `tick()`'s `top_ins` port is still fed zeros, which is the natural
   hook if you ever want the array itself to accumulate across K-tiles.
+- **The tiled tab is framed as a TPU, on purpose.** Weight-stationary array + weight FIFO +
+  accumulator, one memory level. Do not add CPU/BLIS-style cache blocking, packing, or a multi-level
+  memory hierarchy: a systolic array's argument is that reuse is *spatial* (data propagates across
+  PEs) rather than *temporal* (data cycles through caches), and a cache-hierarchy visualization would
+  undercut that. Loop order is N-outer / K-middle / M-innermost, which happens to be the Goto/BLIS
+  order — worth a sentence in prose, not a second simulator.
+- Weight-load timing lives entirely in the scheduler, not in Rust. A tile shift-in costs one cycle
+  per array row (`TilePass.loadCycles`); `peStatesShiftingIn` fakes the visual, pushing the tile's
+  bottom row first so it ends up at the bottom after `tk` cycles. With the FIFO on, only pass 0 pays
+  the stall — later loads overlap the previous pass's compute, so `loadCycles` is 0 and the staging
+  is shown in a separate FIFO panel instead of in the array.
+- `macsAt` / `phaseAt` are pure functions over a `TilePass`, used both to accumulate the utilization
+  counter and to draw the pass timeline. Keep them pure — the timeline renders every cycle of a pass
+  ahead of time, including cycles that have not run yet.
 - Both grid tabs render through `SystolicGrid.tsx`, which holds no simulation state — everything it
   draws comes from callbacks (`leftQueue`, `bottomQueue`, `flowAt`, `peMuted`, ...). Add new visual
   affordances there rather than forking the grid a third time.
