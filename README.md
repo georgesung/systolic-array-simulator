@@ -48,12 +48,17 @@ pipeline_add/
 │       │   ├── PESimulator.tsx             # Tab 2: Single PE MAC view
 │       │   ├── Simulator.tsx               # Tab 3: 1D Dot Product simulator
 │       │   ├── MatrixMultiplySimulator.tsx # Tab 4: 2D Matrix Multiply simulator
+│       │   ├── TiledMatmulSimulator.tsx    # Tab 5: Tiled Matrix Multiply simulator
+│       │   ├── SystolicGrid.tsx            # Shared PE-grid render used by Tabs 4 and 5
 │       │   ├── PipelineVisualizer.tsx      # SVG datapath visualizer used by Tab 3
 │       │   └── ui/                         # shadcn/ui primitives (button, card, input, ...)
 │       ├── hooks/              # Custom React Hooks interfacing with Rust WebAssembly
 │       │   ├── usePipeline.ts              # Connects Tab 3 to DotProductSim
-│       │   └── useMatrixMultiply.ts        # Connects Tab 4 to SystolicArray2DSim
-│       └── lib/utils.ts        # Tailwind class-merge helper
+│       │   ├── useMatrixMultiply.ts        # Connects Tab 4 to SystolicArray2DSim
+│       │   └── useTiledMatmul.ts           # Connects Tab 5 to SystolicArray2DSim (one pass per tile)
+│       └── lib/
+│           ├── utils.ts                    # Tailwind class-merge helper
+│           └── tones.ts                    # Shared color palettes for the grid visualizers
 ├── docs/                       # 📚 Standalone MkDocs site (theory + architecture notes)
 └── mkdocs.yml                  # MkDocs config — see the note under "Documentation" below
 ```
@@ -64,7 +69,7 @@ pipeline_add/
 
 The user touchpoint is a modern, responsive web application located in `./web/`. It uses Next.js 16 (App Router), React 19, TypeScript, and Tailwind CSS v4 with shadcn/ui components, turning hardware concepts into intuitive, interactive visual schematics.
 
-Users can step through simulations cycle-by-cycle, or auto-play them at a fixed pace (1 s per cycle in the 1D tab, 1.5 s in the 2D tab). The whole app is a single client-rendered page; the four views are tabs, each deep-linkable via a URL hash:
+Users can step through simulations cycle-by-cycle, or auto-play them at a fixed pace (1 s per cycle in the 1D and tiled tabs, 1.5 s in the 2D tab). The whole app is a single client-rendered page; the five views are tabs, each deep-linkable via a URL hash:
 
 | Tab | URL hash |
 | --- | --- |
@@ -72,6 +77,7 @@ Users can step through simulations cycle-by-cycle, or auto-play them at a fixed 
 | Processing Element | `#pe` |
 | 1D Dot Product | `#dot-product` (also `#dotproduct`) |
 | 2D Matrix Multiply | `#matmul` (also `#matrix-multiply`) |
+| Tiled Matrix Multiply | `#tiled` (also `#tiled-matmul`) |
 
 ### Progressive Learning Journey (The Tabs)
 
@@ -97,6 +103,13 @@ Users can step through simulations cycle-by-cycle, or auto-play them at a fixed 
 * **Inputs:** Square size selector ($N \times N$, adjustable from $2 \times 2$ up to $8 \times 8$) and multi-matrix sequential batching (simultaneously feed $A_1, A_2, A_3$ through the array).
 * **Visual Representation:** Highlights the **skewed input wavefront** (where rows of Matrix A are delayed diagonally by $0, 1, 2, \dots$ cycles) so they intersect the correct stationary weight at the exact cycle their accumulating $Y$ sum arrives from the PE above.
 * **Educational Takeaway:** Clarifies spatial and temporal concurrency. Students see multiple independent multiplications and accumulations happening in parallel across different physical components in real-time.
+
+#### 🧩 Tab 5: Tiled Matrix Multiply Simulator
+* **Concept:** Runs a matrix multiply that is *larger than the hardware*. The physical array is fixed (1×1 up to 4×4 PEs) while the logical problem goes up to 8×8, so $B$ is chopped into tiles that are loaded into the array one at a time.
+* **Inputs:** Logical matrix dimension $N$ and physical array size, plus editable $A$ and $B$ matrices.
+* **Visual Representation:** A tile map showing $A$, $B$ and $C$ with tile boundaries drawn and the current tile window highlighted; the shared PE grid running the current tile pass (with zero-padded PEs dimmed on edge tiles); and a live accumulator for $C$ where cells are dashed while partial and solid once every K-tile has landed.
+* **Educational Takeaway:** Shows the two costs tiling introduces — a **weight reload** per tile, and a fresh **pipeline fill and drain** per pass — and why they push MAC utilization well below 100%. It is also where a $C$ cell stops being computed once and starts being *revisited*: partial sums from different K-tiles are summed in the accumulator, not inside the array.
+* **Note:** This tab required no changes to the Rust core. It orchestrates repeated passes of the same `SystolicArray2DSim` from TypeScript, which is exactly how a fixed-size array is driven in real life.
 
 ---
 
@@ -157,7 +170,7 @@ The boundary between the user's browser (React) and the cycle-accurate compiled 
 ```
 
 1. **WASM Binding Compilation (`src/wasm_bindings.rs`):** Exposes stateful Rust objects `DotProductSim` and `SystolicArray2DSim` directly to JavaScript.
-2. **State Management via Hooks (`web/src/hooks/`):** React hooks (`usePipeline.ts` and `useMatrixMultiply.ts`) instantiate the simulators and maintain UI synchronicity.
+2. **State Management via Hooks (`web/src/hooks/`):** React hooks (`usePipeline.ts`, `useMatrixMultiply.ts` and `useTiledMatmul.ts`) instantiate the simulators and maintain UI synchronicity.
 3. **The Cycle Loop:**
    * When a user steps forward or toggles Auto-Play, the hook invokes the simulator's `.tick()` method.
    * The simulator executes one hardware-level cycle.

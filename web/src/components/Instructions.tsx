@@ -3,7 +3,7 @@
 import React from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
-import { Grid, RotateCcw, ArrowRight, Info, Cpu, Layers } from 'lucide-react';
+import { Grid, RotateCcw, ArrowRight, Info, Cpu, Layers, LayoutGrid } from 'lucide-react';
 
 interface InstructionsProps {
   onStart: () => void;
@@ -53,7 +53,7 @@ export function Instructions({ onStart }: InstructionsProps) {
         <h2 className="text-xl sm:text-2xl font-bold tracking-tight text-zinc-900 dark:text-zinc-50">
           Explore the Simulator Tabs
         </h2>
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
           {/* PE Card */}
           <Card className="border-emerald-100 dark:border-emerald-950/50 bg-emerald-50/10 dark:bg-emerald-950/5 hover:border-emerald-200 transition-all shadow-sm">
             <CardHeader className="space-y-2">
@@ -128,6 +128,32 @@ export function Instructions({ onStart }: InstructionsProps) {
               </p>
               <p>
                 Since the weights are pre-loaded, we can stream multiple consecutive matrices back-to-back without resetting the hardware!
+              </p>
+            </CardContent>
+          </Card>
+
+          {/* Tiled Matmul Card */}
+          <Card className="border-amber-100 dark:border-amber-950/50 bg-amber-50/10 dark:bg-amber-950/5 hover:border-amber-200 transition-all shadow-sm">
+            <CardHeader className="space-y-2">
+              <div className="p-2 w-fit rounded-lg bg-amber-100 dark:bg-amber-950/50 text-amber-600 dark:text-amber-400">
+                <LayoutGrid className="w-5 h-5" />
+              </div>
+              <CardTitle className="text-lg font-bold text-zinc-950 dark:text-zinc-50">
+                Tiled Matmul
+              </CardTitle>
+              <CardDescription className="text-xs sm:text-sm">
+                When the matrix is bigger than the hardware.
+              </CardDescription>
+            </CardHeader>
+            <CardContent className="text-zinc-600 dark:text-zinc-300 text-xs sm:text-sm leading-relaxed space-y-2">
+              <p>
+                Real arrays are a fixed size, and real matrices are much larger. So the weights get chopped into <strong>tiles</strong>, loaded one at a time.
+              </p>
+              <p>
+                Each tile is a separate pass over the same hardware, so every pass pays for a <strong>weight reload</strong> and a fresh pipeline fill.
+              </p>
+              <p>
+                Partial sums from different tiles are added up in an <strong>accumulator</strong> outside the array — so a result cell is revisited, not computed once.
               </p>
             </CardContent>
           </Card>

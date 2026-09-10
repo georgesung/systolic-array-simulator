@@ -52,10 +52,12 @@ src/                    Rust hardware model (~1100 lines, the substance of the p
   wasm_bindings.rs        DotProductSim / SystolicArray2DSim — the entire JS-facing API
   bin/                    Two interactive CLI simulators, handy for debugging without a browser
 web/src/
-  app/page.tsx            Single client page; four tabs, hash-routed (#pe, #dot-product, #matmul)
+  app/page.tsx            Single client page; five tabs, hash-routed (#pe, #dot-product, #matmul, #tiled)
   components/             One component per tab + PipelineVisualizer (SVG, used by the 1D tab)
+  components/SystolicGrid.tsx  Shared, stateless PE-grid render — used by the 2D and tiled tabs
   components/ui/          shadcn/ui primitives — generated, don't hand-edit
-  hooks/                  usePipeline (1D) and useMatrixMultiply (2D) wrap the WASM sims
+  hooks/                  usePipeline (1D), useMatrixMultiply (2D), useTiledMatmul (tiled)
+  lib/tones.ts            Shared Tailwind color sets for the grid visualizers
 docs/                     Standalone MkDocs site — STALE, see below
 ```
 
@@ -86,6 +88,19 @@ The best regression check for array logic is `test_systolic_matmul_random_dynami
 - `next.config.ts` also enables webpack's `asyncWebAssembly` experiment. That flag is what makes the WASM import work; don't drop it.
 - Both hooks guard against a freed WASM pointer (`isValidWasmInstance` checks `__wbg_ptr !== 0`) and reset the sim when dimensions or matrices change. Preserve that when touching hook lifecycle code.
 - The 2D hook is general over `(m, k, n)`, but `MatrixMultiplySimulator.tsx` currently locks the UI to square arrays, `size` clamped to 2–8.
+- The tiled tab (`useTiledMatmul.ts`) is a pure-TypeScript scheduler over the *existing* Rust sim: one
+  `SystolicArray2DSim` pass per tile, weights reloaded between passes, partial sums from different
+  K-tiles summed in a JS accumulator. It needs no Rust changes — keep it that way unless you are
+  deliberately modelling something the core cannot express. Two things to know if you touch it:
+  `load_weights` does **not** clear the data registers, so each pass builds a fresh sim rather than
+  reloading a dirty array; and `tick()`'s `top_ins` port is still fed zeros, which is the natural
+  hook if you ever want the array itself to accumulate across K-tiles.
+- Both grid tabs render through `SystolicGrid.tsx`, which holds no simulation state — everything it
+  draws comes from callbacks (`leftQueue`, `bottomQueue`, `flowAt`, `peMuted`, ...). Add new visual
+  affordances there rather than forking the grid a third time.
+- Hooks here follow the repo's "reset during render" pattern rather than resetting in an effect, and
+  `useTiledMatmul` returns the *post-reset* snapshot on that same render. Returning the stale one
+  crashes the tab, because the old `passIdx` can point past the end of a newly rebuilt pass list.
 - Tailwind v4 + shadcn/ui. Match existing class conventions (zinc palette, dark-mode variants on every colored element).
 
 ## CI and deployment

@@ -5,9 +5,10 @@ import { Instructions } from '@/components/Instructions';
 import { PESimulator } from '@/components/PESimulator';
 import { Simulator } from '@/components/Simulator';
 import { MatrixMultiplySimulator } from '@/components/MatrixMultiplySimulator';
-import { Box, Brackets, Grid, BookOpen } from 'lucide-react';
+import { TiledMatmulSimulator } from '@/components/TiledMatmulSimulator';
+import { Box, Brackets, Grid, BookOpen, Layers } from 'lucide-react';
 
-type TabId = 'instructions' | 'pe' | 'dot-product' | 'matrix-multiply';
+type TabId = 'instructions' | 'pe' | 'dot-product' | 'matrix-multiply' | 'tiled';
 
 export default function Home() {
   const [activeTab, setActiveTab] = useState<TabId>('instructions');
@@ -24,6 +25,8 @@ export default function Home() {
         setActiveTab('dot-product');
       } else if (hash === '#matmul' || hash === '#matrix-multiply') {
         setActiveTab('matrix-multiply');
+      } else if (hash === '#tiled' || hash === '#tiled-matmul') {
+        setActiveTab('tiled');
       }
     };
 
@@ -45,7 +48,9 @@ export default function Home() {
         ? '#pe'
         : tab === 'dot-product'
         ? '#dot-product'
-        : '#matmul';
+        : tab === 'matrix-multiply'
+        ? '#matmul'
+        : '#tiled';
     // Use replaceState to update URL hash without jumpy browser scroll behavior
     window.history.replaceState(null, '', hash);
   };
@@ -73,6 +78,11 @@ export default function Home() {
           title: 'Systolic Array Matrix Multiply',
           subtitle: '2D grid of PEs to compute weight stationary matrix multiplication. A series of dot products!',
         };
+      case 'tiled':
+        return {
+          title: 'Tiled Matrix Multiply',
+          subtitle: 'Real arrays are smaller than real matrices. Chop the problem into tiles, reload weights per tile, and accumulate the partial sums.',
+        };
     }
   };
 
@@ -82,7 +92,7 @@ export default function Home() {
     <div className="min-h-screen bg-zinc-50/50 dark:bg-black font-sans py-16 px-4">
       {/* Top Navigation Bar */}
       <div className="max-w-5xl mx-auto mb-12 flex justify-center">
-        <nav className="inline-flex items-center space-x-1 bg-zinc-100 dark:bg-zinc-950 p-1.5 rounded-xl border border-zinc-200/80 dark:border-zinc-800 shadow-sm">
+        <nav className="inline-flex flex-wrap items-center justify-center gap-1 bg-zinc-100 dark:bg-zinc-950 p-1.5 rounded-xl border border-zinc-200/80 dark:border-zinc-800 shadow-sm">
           <button
             onClick={() => selectTab('instructions')}
             className={`flex items-center gap-2 px-4 py-2 text-sm font-semibold rounded-lg transition-all duration-200 cursor-pointer ${
@@ -127,6 +137,17 @@ export default function Home() {
             <Grid className="w-4 h-4" />
             2D Matrix Multiply
           </button>
+          <button
+            onClick={() => selectTab('tiled')}
+            className={`flex items-center gap-2 px-4 py-2 text-sm font-semibold rounded-lg transition-all duration-200 cursor-pointer ${
+              activeTab === 'tiled'
+                ? 'bg-white dark:bg-zinc-800 text-zinc-950 dark:text-zinc-50 shadow-sm'
+                : 'text-zinc-500 dark:text-zinc-400 hover:text-zinc-900 dark:hover:text-zinc-100'
+            }`}
+          >
+            <Layers className="w-4 h-4" />
+            Tiled Matmul
+          </button>
         </nav>
       </div>
 
@@ -144,6 +165,7 @@ export default function Home() {
         {activeTab === 'pe' && <PESimulator />}
         {activeTab === 'dot-product' && <Simulator />}
         {activeTab === 'matrix-multiply' && <MatrixMultiplySimulator />}
+        {activeTab === 'tiled' && <TiledMatmulSimulator />}
       </main>
 
       <footer className="mt-8 text-center text-sm text-muted-foreground">
