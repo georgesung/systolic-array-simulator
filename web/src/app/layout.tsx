@@ -76,7 +76,7 @@ const jsonLd = {
   },
   isPartOf: {
     "@type": "Article",
-    name: "Matrix multiplication on systolic arrays, and why it's important for LLMs",
+    name: "Systolic array matrix multiplication for LLMs, with interactive hardware simulator",
     url: "https://www.georgesung.com/ai-hardware/systolic-array-matmul/",
   },
 };
