@@ -37,7 +37,7 @@ export function Instructions({ onStart }: InstructionsProps) {
           <div className="mt-4 p-4 rounded-lg bg-indigo-50/50 dark:bg-indigo-950/20 border border-indigo-100 dark:border-indigo-950/50 text-sm">
             <span className="font-semibold text-indigo-950 dark:text-indigo-300">📖 Deep Dive:</span> Learn more about why matrix multiplications dominate LLM workloads, where they occur, and how hardware accelerators optimize them in the{' '}
             <a 
-              href="https://www.georgesung.com/ai-hardware/systolic-array-matmul" 
+              href="https://www.georgesung.com/ai-hardware/systolic-array-matmul/" 
               target="_blank" 
               rel="noopener noreferrer"
               className="font-semibold text-indigo-600 dark:text-indigo-400 underline hover:text-indigo-800 dark:hover:text-indigo-300"

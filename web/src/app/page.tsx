@@ -180,7 +180,7 @@ export default function Home() {
           </a>
           <span className="text-zinc-300 dark:text-zinc-800">|</span>
           <a
-            href="https://www.georgesung.com/ai-hardware/systolic-array-matmul"
+            href="https://www.georgesung.com/ai-hardware/systolic-array-matmul/"
             target="_blank"
             rel="noopener noreferrer"
             className="hover:text-primary font-medium text-indigo-600 dark:text-indigo-400"
